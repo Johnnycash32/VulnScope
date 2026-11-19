@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>VulnScope Scan Report</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm;
+            @bottom-center {
+                content: "VulnScope - Page " counter(page) " of " counter(pages);
+                font-size: 8pt;
+                color: #666;
+            }
+        }
+        body {
+            font-family: "Liberation Sans", "DejaVu Sans", sans-serif;
+            font-size: 9pt;
+            color: #333;
+            line-height: 1.4;
+        }
+        .header {
+            border-bottom: 2px solid #1a1a1a;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #1a1a1a;
+        }
+        .header .subtitle {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .meta-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+        .meta-table td {
+            padding: 0.3rem 0.5rem;
+            border-bottom: 1px solid #ddd;
+            vertical-align: top;
+        }
+        .meta-table td.label {
+            font-weight: bold;
+            width: 30%;
+            color: #444;
+        }
+        .meta-table td.value {
+            width: 70%;
+        }
+        h2 {
+            font-size: 1.1rem;
+            color: #1a1a1a;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 0.2rem;
+        }
+        .vuln-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        .vuln-table th {
+            background: #f4f4f4;
+            color: #1a1a1a;
+            font-size: 8pt;
+            text-align: left;
+            padding: 0.4rem 0.5rem;
+            border: 1px solid #ddd;
+        }
+        .vuln-table td {
+            font-size: 8pt;
+            padding: 0.4rem 0.5rem;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+        .vuln-table tr:nth-child(even) {
+            background: #fafafa;
+        }
+        .severity-badge {
+            display: inline-block;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            font-size: 7.5pt;
+            font-weight: bold;
+            color: #fff;
+        }
+        .sev-Critical { background: #b30000; }
+        .sev-High { background: #e64a19; }
+        .sev-Medium { background: #f9a825; }
+        .sev-Low { background: #43a047; }
+        .sev-Info { background: #1e88e5; }
+        .sev-Unknown { background: #757575; }
+        .risk-badge {
+            display: inline-block;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            font-size: 7.5pt;
+            font-weight: bold;
+            color: #fff;
+        }
+        .risk-High { background: #b30000; }
+        .risk-Medium { background: #f9a825; }
+        .risk-Low { background: #43a047; }
+        .risk-Info { background: #1e88e5; }
+        .empty {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 2rem;
+        }
+        .footer {
+            margin-top: 2rem;
+            font-size: 7.5pt;
+            color: #666;
+            border-top: 1px solid #ccc;
+            padding-top: 0.5rem;
+        }
+        .detail-row {
+            margin-bottom: 0.5rem;
+            padding-left: 1rem;
+            font-size: 8pt;
+            color: #444;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #333;
+        }
+        .cve-link {
+            color: #1e88e5;
+            text-decoration: none;
+        }
+        .cve-link:hover {
+            text-decoration: underline;
+        }
+        .exploit-badge {
+            display: inline-block;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            font-size: 7.5pt;
+            font-weight: bold;
+            color: #fff;
+            background: #b30000;
+        }
+        .cvss-vector {
+            font-family: monospace;
+            font-size: 7pt;
+            color: #666;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>VulnScope Scan Report</h1>
+        <div class="subtitle">Vulnerability Assessment Report</div>
+    </div>
+
+    <table class="meta-table">
+        <tr>
+            <td class="label">Scan ID</td>
+            <td class="value">{{ scan.id }}</td>
+        </tr>
+        <tr>
+            <td class="label">Target ID</td>
+            <td class="value">{{ scan.target_id }}</td>
+        </tr>
+        <tr>
+            <td class="label">Target URL</td>
+            <td class="value">{{ target_url }}</td>
+        </tr>
+        <tr>
+            <td class="label">Status</td>
+            <td class="value">{{ scan.status }}</td>
+        </tr>
+        <tr>
+            <td class="label">Created</td>
+            <td class="value">{{ scan.created_at }}</td>
+        </tr>
+        <tr>
+            <td class="label">Completed</td>
+            <td class="value">{{ scan.completed_at or 'N/A' }}</td>
+        </tr>
+        <tr>
+            <td class="label">Total Vulnerabilities</td>
+            <td class="value">{{ vulnerabilities|length }}</td>
+        </tr>
+        <tr>
+            <td class="label">Risk Summary</td>
+            <td class="value">
+                {% set risk_counts = {'High': 0, 'Medium': 0, 'Low': 0, 'Info': 0} %}
+                {% for v in vulnerabilities %}
+                    {% set _ = risk_counts.update({v.risk: risk_counts[v.risk] + 1}) %}
+                {% endfor %}
+                {{ risk_counts.High }} High, {{ risk_counts.Medium }} Medium, {{ risk_counts.Low }} Low, {{ risk_counts.Info }} Info
+            </td>
+        </tr>
+    </table>
+
+    <h2>Vulnerability Findings</h2>
+
+    {% if vulnerabilities %}
+    <table class="vuln-table">
+        <thead>
+            <tr>
+                <th style="width: 18%">Name</th>
+                <th style="width: 8%">Risk</th>
+                <th style="width: 10%">CVE ID</th>
+                <th style="width: 8%">CVSS Score</th>
+                <th style="width: 10%">CVSS Severity</th>
+                <th style="width: 8%">Exploit</th>
+                <th style="width: 16%">Evidence</th>
+                <th style="width": "16%">CWEs</th>
+                <th style="width="16%">Remediation</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for v in vulnerabilities %}
+            <tr>
+                <td>{{ v.name }}</td>
+                <td>
+                    <span class="risk-badge risk-{{ v.risk|lower }}">{{ v.risk }}</span>
+                </td>
+                <td>
+                    {% if v.cve_id %}
+                        <a href="https://nvd.nist.gov/vuln/detail/{{ v.cve_id }}" target="_blank" class="cve-link">{{ v.cve_id }}</a>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>{{ v.cvss_score if v.cvss_score is not none else '—' }}</td>
+                <td>
+                    {% if v.cvss_severity %}
+                        <span class="severity-badge sev-{{ v.cvss_severity }}">{{ v.cvss_severity }}</span>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>
+                    {% if v.exploit_available %}
+                        <span class="exploit-badge">Yes</span>
+                    {% else %}
+                        No
+                    {% endif %}
+                </td>
+                <td>{{ v.evidence or '—' }}</td>
+                <td>
+                    {% if v.cwes %}
+                        {{ v.cwes }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>{{ v.remediation_code or 'No remediation guidance available.' }}</td>
+            </tr>
+            <tr style="display: none;" class="vuln-detail-{{ v.id }}">
+                <td colspan="9">
+                    {% if v.cvss_vector %}
+                        <div class="detail-row"><span class="detail-label">CVSS Vector:</span> <span class="cvss-vector">{{ v.cvss_vector }}</span></div>
+                    {% endif %}
+                    {% if v.references %}
+                        <div class="detail-row"><span class="detail-label">References:</span>
+                            <ul>
+                            {% for ref in v.references %}
+                                <li><a href="{{ ref.url }}" target="_blank" class="cve-link">{{ ref.url }}</a> {% if ref.tags %}({{ ref.tags }}){% endif %}</li>
+                            {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                    {% if v.vendor_advisories %}
+                        <div class="detail-row"><span class="detail-label">Vendor Advisories:</span>
+                            <ul>
+                            {% for adv in v.vendor_advisories %}
+                                <li><a href="{{ adv.url }}" target="_blank" class="cve-link">{{ adv.url }}</a> ({{ adv.tags }})</li>
+                            {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                    {% if v.published_date %}
+                        <div class="detail-row"><span class="detail-label">Published:</span> {{ v.published_date }}</div>
+                    {% endif %}
+                    {% if v.last_modified_date %}
+                        <div class="detail-row"><span class="detail-label">Last Modified:</span> {{ v.last_modified_date }}</div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No vulnerabilities found for this scan.</div>
+    {% endif %}
+
+    <div class="footer">
+        Generated by VulnScope &mdash; vulnerability assessment platform.<br>
+        Report for scan {{ scan.id }} of target {{ target_url }}.
+    </div>
+</body>
+</html>

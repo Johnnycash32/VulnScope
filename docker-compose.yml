@@ -1,0 +1,78 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: vulnscope
+      POSTGRES_PASSWORD: vulnscope
+      POSTGRES_DB: vulnscope
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vulnscope -d vulnscope"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    ports:
+      - "8080:8080"
+    command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true -config api.disablekey=true
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      zap:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://vulnscope:vulnscope@db:5432/vulnscope
+      JWT_SECRET: ${JWT_SECRET:-change-me-dev-secret}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+      CORS_ORIGINS: ${CORS_ORIGINS:-[]}
+      REDIS_URL: redis://redis:6379/0
+      ZAP_API_URL: http://zap:8080
+      ZAP_API_KEY: ${ZAP_API_KEY:-}
+    ports:
+      - "8000:8000"
+
+  celery_worker:
+    build: .
+    command: celery -A app.worker.celery_app worker --loglevel=info
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      zap:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://vulnscope:vulnscope@db:5432/vulnscope
+      REDIS_URL: redis://redis:6379/0
+      ZAP_API_URL: http://zap:8080
+      ZAP_API_KEY: ${ZAP_API_KEY:-}
+
+volumes:
+  pgdata:
