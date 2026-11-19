@@ -213,12 +213,16 @@ lives in `app/services/tasks.py`. ZAP runs in daemon mode
 
 ## What's NOT built yet
 
-Scanning is implemented in this phase. The following are **intentionally not
-implemented** and are planned for future phases:
+The following are **intentionally not implemented** and are planned for future phases:
 
-- **CVE / CVSS / vulnerability data** — CVE lookup, scoring, and vendor data
-  (Phase 3).
-- **Reporting** — report generation, exports, and notifications.
-- **Dashboards / frontend** — only FastAPI's interactive `/docs` is included.
-- **DNS verification** — interface only; real resolver logic is not wired.
-- **Admin features** — role checks exist, but admin tooling is out of scope.
+- **Dashboards / frontend** — only FastAPI's interactive `/docs` is included (no React/Vue UI)
+- **Notifications** — email/Slack/webhook alerts for scan completion or critical findings
+
+## What IS built (this phase)
+
+- **CVE / CVSS / vulnerability data** — Full NVD enrichment: CVSS vectors, CWE IDs, vendor advisories, exploit availability, published/modified dates
+- **Reporting** — PDF (WeasyPrint), HTML, and JSON exports with risk summaries, CVE links, evidence, remediation code
+- **DNS verification** — Real DNS TXT record lookup for `_vulnscope.<host>` (file method also supported)
+- **Admin features** — User management, global scan/target listing, system statistics, role promotion
+- **Scheduled/recurring scans** — Cron-based schedules with APScheduler, pause/resume, next-run tracking
+- **Scan comparison/diff** — Compare two scans for the same target: added/removed/changed vulnerabilities with risk/CVSS delta
