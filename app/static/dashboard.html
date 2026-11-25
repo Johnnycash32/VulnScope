@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VulnScope | Automated Web Vulnerability Assessment</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050a12;
+    --card: #0d1520;
+    --border: #1a2332;
+    --cyan: #00f0ff;
+    --green: #00ff88;
+    --red: #ff3b5c;
+    --orange: #ff8c42;
+    --yellow: #ffd93d;
+    --blue: #4d9fff;
+  }
+  * { font-family: 'Inter', sans-serif; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  body { background: var(--bg); color: #e2e8f0; }
+  .card {
+    background: linear-gradient(145deg, #0f1724, #0a1018);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  .glow-cyan { text-shadow: 0 0 12px rgba(0,240,255,0.6); }
+  .glow-green { text-shadow: 0 0 12px rgba(0,255,136,0.6); }
+  .nav-active {
+    background: linear-gradient(90deg, rgba(0,255,136,0.15), transparent);
+    border-left: 3px solid var(--green);
+    color: var(--green) !important;
+  }
+  .pulse-online {
+    width: 8px; height: 8px; background: var(--green); border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(0,255,136,0.7);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0,255,136,0.7); }
+    70% { box-shadow: 0 0 0 8px rgba(0,255,136,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,255,136,0); }
+  }
+  .hero-glow {
+    background: radial-gradient(circle at 30% 50%, rgba(0,240,255,0.15), transparent 60%);
+  }
+  .stat-card:hover { transform: translateY(-2px); border-color: #2a3a4a; transition: all 0.2s; }
+  canvas { max-height: 180px; }
+  .severity-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .scan-row:hover { background: rgba(255,255,255,0.03); }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0a1018; }
+  ::-webkit-scrollbar-thumb { background: #1e2a3a; border-radius: 3px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+  }
+  .badge-valid { background: rgba(0,255,136,0.2); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+  .badge-expiring { background: rgba(255,217,61,0.2); color: var(--yellow); border: 1px solid rgba(255,217,61,0.3); }
+  .badge-expired { background: rgba(255,59,92,0.2); color: var(--red); border: 1px solid rgba(255,59,92,0.3); }
+  .badge-unknown { background: rgba(107,114,128,0.2); color: #9ca3af; border: 1px solid rgba(107,114,128,0.3); }
+  .badge-error { background: rgba(255,59,92,0.2); color: var(--red); border: 1px solid rgba(255,59,92,0.3); }
+  .skeleton {
+    background: linear-gradient(90deg, #0f1724 25%, #1a2332 50%, #0f1724 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .toast {
+    position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 200;
+    padding: 1rem 1.25rem; border-radius: 10px; color: white;
+    font-size: 0.875rem; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  .toast-success { background: var(--green); color: #000; }
+  .toast-error { background: var(--red); }
+  .toast-info { background: var(--cyan); color: #000; }
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center;
+  }
+  .modal {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 1.5rem; width: 90%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- Sidebar -->
+<aside class="fixed left-0 top-0 h-full w-[260px] bg-[#070d16] border-r border-[#1a2332] z-50 flex flex-col">
+  <div class="p-6 border-b border-[#1a2332]">
+    <div class="flex items-center gap-3 mb-1">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-green-400 flex items-center justify-center">
+        <i class="fas fa-shield-halved text-black text-lg"></i>
+      </div>
+      <div>
+        <h1 class="text-xl font-extrabold tracking-tight">Vuln<span class="text-cyan-400">Scope</span></h1>
+        <p class="text-[11px] text-gray-500">Scan · Analyse · Secure</p>
+      </div>
+    </div>
+  </div>
+
+  <nav class="flex-1 p-3 space-y-1 text-sm overflow-y-auto">
+    <a onclick="show('dashboard')" class="nav-active flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer"><i class="fas fa-home w-5"></i> Dashboard</a>
+    <a onclick="show('scan')" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 cursor-pointer"><i class="fas fa-radar w-5"></i> New Scan</a>
+    <a onclick="show('history')" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 cursor-pointer"><i class="fas fa-clock-rotate-left w-5"></i> Scan History</a>
+    <a onclick="show('reports')" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 cursor-pointer"><i class="fas fa-file-lines w-5"></i> Reports</a>
+    <a onclick="show('remediation')" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 cursor-pointer"><i class="fas fa-wrench w-5"></i> Remediation</a>
+    
+    <!-- NEW CERTWATCH TAB -->
+    <div class="my-2 border-t border-gray-800"></div>
+    <a onclick="show('certwatch')" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 cursor-pointer">
+      <i class="fas fa-certificate w-5 text-blue-400"></i> CertWatch
+    </a>
+    <div class="my-2 border-t border-gray-800"></div>
+
+    <a onclick="show('resources')" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 cursor-pointer"><i class="fas fa-book-open w-5"></i> Resources</a>
+    <a onclick="show('developers')" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 cursor-pointer"><i class="fas fa-users w-5"></i> Developers</a>
+    <a onclick="show('admin')" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 cursor-pointer"><i class="fas fa-user-shield w-5"></i> Admin Panel <span class="ml-auto text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Admin</span></a>
+  </nav>
+
+  <div class="p-4">
+    <div class="card p-4 bg-gradient-to-br from-cyan-900/40 to-black relative overflow-hidden">
+      <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&q=80" class="absolute inset-0 w-full h-full object-cover opacity-30" alt="">
+      <div class="relative">
+        <p class="text-green-400 font-bold text-sm leading-tight">Think Secure.<br>Build Safer.</p>
+        <p class="text-[11px] text-gray-300 mt-1">With VulnScope.</p>
+      </div>
+    </div>
+    <p class="text-[10px] text-gray-600 mt-3 text-center">Version 1.0.0<br>© 2026 VulnScope</p>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="ml-[260px] min-h-screen">
+  <!-- Top Bar -->
+  <header class="h-16 border-b border-[#1a2332] flex items-center justify-between px-8 bg-[#070d16]/90 backdrop-blur sticky top-0 z-40">
+    <div class="text-sm text-gray-400">Automated Web Vulnerability Assessment <span class="text-cyan-400">for a More Secure Web</span></div>
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-2 text-sm">
+        <div class="pulse-online"></div>
+        <span class="text-green-400">System Online</span>
+      </div>
+      <div class="relative">
+        <i class="fas fa-bell text-gray-400"></i>
+        <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-[10px] rounded-full flex items-center justify-center">3</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-sm font-bold">JE</div>
+        <div class="text-sm">
+          <p class="font-medium">John Eludini</p>
+          <p class="text-[11px] text-gray-500">Pro User</p>
+        </div>
+        <i class="fas fa-chevron-down text-xs text-gray-500"></i>
+      </div>
+    </div>
+  </header>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Dashboard Content -->
+  <section id="dashboard" class="p-6 space-y-6">
+    <!-- Hero + Stats -->
+    <div class="grid grid-cols-12 gap-6">
+      <div class="col-span-7 card hero-glow p-6 flex items-center gap-6 relative overflow-hidden">
+        <div class="absolute -right-10 -top-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl"></div>
+        <div class="relative w-40 h-40 flex-shrink-0">
+          <div class="absolute inset-0 bg-gradient-to-br from-cyan-400/30 to-blue-500/20 rounded-full animate-pulse"></div>
+          <div class="absolute inset-4 border-2 border-cyan-400/40 rounded-full flex items-center justify-center">
+            <i class="fas fa-globe text-5xl text-cyan-300"></i>
+          </div>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <i class="fas fa-shield-halved text-3xl text-cyan-400"></i>
+          </div>
+        </div>
+        <div class="flex-1">
+          <h2 class="text-2xl font-bold">Scan Your Website for<br><span class="text-green-400 glow-green">Security Vulnerabilities</span></h2>
+          <p class="text-gray-400 text-sm mt-2 mb-4">Detect threats, get CVE details, and receive smart remediation advice.</p>
+          <div class="flex gap-2">
+            <div class="flex-1 bg-black/40 border border-gray-700 rounded-lg px-4 py-2.5 flex items-center gap-2">
+              <i class="fas fa-link text-gray-500 text-sm"></i>
+              <input type="text" value="https://example.com" class="bg-transparent flex-1 outline-none text-sm mono" placeholder="Enter URL">
+            </div>
+            <button class="bg-gradient-to-r from-green-500 to-cyan-500 text-black font-semibold px-5 py-2.5 rounded-lg flex items-center gap-2 hover:opacity-90 transition">
+              <i class="fas fa-bolt"></i> Start Scan →
+            </button>
+          </div>
+          <p class="text-[11px] text-green-400 mt-3 flex items-center gap-1"><i class="fas fa-check-circle"></i> Only scan websites you own or have explicit permission to test.</p>
+        </div>
+      </div>
+
+      <div class="col-span-5 grid grid-cols-3 gap-4">
+        <div class="card stat-card p-4">
+          <div class="flex justify-between items-start">
+            <i class="fas fa-crosshairs text-cyan-400"></i>
+            <span class="text-green-400 text-xs">↑ 12%</span>
+          </div>
+          <p class="text-3xl font-bold mt-2">247</p>
+          <p class="text-xs text-gray-500">Total Scans</p>
+          <canvas id="spark1" class="mt-2 h-8"></canvas>
+        </div>
+        <div class="card stat-card p-4">
+          <div class="flex justify-between items-start">
+            <i class="fas fa-shield-exclamation text-red-400"></i>
+            <span class="text-red-400 text-xs">↑ 18%</span>
+          </div>
+          <p class="text-3xl font-bold mt-2 text-red-400">89</p>
+          <p class="text-xs text-gray-500">Issues Found</p>
+          <canvas id="spark2" class="mt-2 h-8"></canvas>
+        </div>
+        <div class="card stat-card p-4">
+          <div class="flex justify-between items-start">
+            <i class="fas fa-shield-check text-green-400"></i>
+            <span class="text-green-400 text-xs">↑ 5%</span>
+          </div>
+          <p class="text-3xl font-bold mt-2 text-green-400">73%</p>
+          <p class="text-xs text-gray-500">Sites Secure</p>
+          <canvas id="spark3" class="mt-2 h-8"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overview + Severity -->
+    <div class="grid grid-cols-12 gap-6">
+      <div class="col-span-7 card p-5">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-semibold flex items-center gap-2"><i class="fas fa-chart-line text-cyan-400"></i> Security Overview</h3>
+          <div class="flex gap-1 text-xs">
+            <button class="px-3 py-1 bg-cyan-500/20 text-cyan-400 rounded-full">7D</button>
+            <button class="px-3 py-1 text-gray-500 hover:text-white">30D</button>
+            <button class="px-3 py-1 text-gray-500 hover:text-white">90D</button>
+          </div>
+        </div>
+        <div class="flex items-center gap-6">
+          <div class="relative w-36 h-36 flex-shrink-0">
+            <canvas id="scoreChart"></canvas>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span class="text-3xl font-bold text-green-400">73%</span>
+              <span class="text-[10px] text-gray-400">Security Score</span>
+            </div>
+          </div>
+          <div class="flex-1 space-y-2 text-sm">
+            <div class="flex items-center gap-2"><span class="severity-dot bg-red-500"></span> Critical <span class="ml-auto mono">12</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-orange-500"></span> High <span class="ml-auto mono">28</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-yellow-400"></span> Medium <span class="ml-auto mono">42</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-blue-400"></span> Low <span class="ml-auto mono">31</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-gray-400"></span> Info <span class="ml-auto mono">19</span></div>
+          </div>
+          <div class="flex-1">
+            <canvas id="lineChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-span-5 card p-5">
+        <h3 class="font-semibold flex items-center gap-2 mb-4"><i class="fas fa-exclamation-triangle text-red-400"></i> Vulnerabilities by Severity</h3>
+        <div class="flex items-center gap-4">
+          <div class="relative w-40 h-40">
+            <canvas id="donutChart"></canvas>
+            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span class="text-2xl font-bold">132</span>
+              <span class="text-[10px] text-gray-400">Total</span>
+            </div>
+          </div>
+          <div class="flex-1 space-y-2.5 text-sm">
+            <div class="flex items-center gap-2"><span class="severity-dot bg-red-500"></span> Critical <span class="ml-auto mono text-gray-400">12 (9.1%)</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-orange-500"></span> High <span class="ml-auto mono text-gray-400">28 (21.2%)</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-yellow-400"></span> Medium <span class="ml-auto mono text-gray-400">42 (31.8%)</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-blue-400"></span> Low <span class="ml-auto mono text-gray-400">31 (23.5%)</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-gray-400"></span> Info <span class="ml-auto mono text-gray-400">19 (13.4%)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Row -->
+    <div class="grid grid-cols-12 gap-6">
+      <div class="col-span-4 card p-5">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-semibold flex items-center gap-2"><i class="fas fa-clock text-cyan-400"></i> Recent Scans</h3>
+          <a class="text-xs text-cyan-400">View All →</a>
+        </div>
+        <div class="space-y-3 text-sm">
+          <div class="scan-row flex items-center justify-between py-1.5 rounded">
+            <div class="flex items-center gap-3"><i class="fas fa-globe text-cyan-400 text-xs"></i> <span class="mono text-xs">https://example.com</span></div>
+            <div class="flex items-center gap-3"><span class="text-green-400 text-xs">✓ Completed</span> <span class="text-gray-500 text-xs">2m ago</span></div>
+          </div>
+          <div class="scan-row flex items-center justify-between py-1.5 rounded">
+            <div class="flex items-center gap-3"><i class="fas fa-globe text-cyan-400 text-xs"></i> <span class="mono text-xs">https://testsite.dev</span></div>
+            <div class="flex items-center gap-3"><span class="text-green-400 text-xs">✓ Completed</span> <span class="text-gray-500 text-xs">15m ago</span></div>
+          </div>
+          <div class="scan-row flex items-center justify-between py-1.5 rounded">
+            <div class="flex items-center gap-3"><i class="fas fa-globe text-cyan-400 text-xs"></i> <span class="mono text-xs">https://demo.app</span></div>
+            <div class="flex items-center gap-3"><span class="text-red-400 text-xs">! Issues Found</span> <span class="text-gray-500 text-xs">32m ago</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-span-4 card p-5">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-semibold flex items-center gap-2"><i class="fas fa-shield text-cyan-400"></i> Latest CVE Alerts</h3>
+          <a class="text-xs text-cyan-400">View All →</a>
+        </div>
+        <div class="space-y-3 text-sm">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="flex items-center gap-2"><i class="fas fa-exclamation-circle text-red-400 text-xs"></i> <span class="font-medium">CVE-2025-44228</span></div>
+              <p class="text-xs text-gray-400 mt-0.5">Apache Log4j 2 RCE Vulnerability</p>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded">Critical</span>
+            </div>
+          </div>
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="flex items-center gap-2"><i class="fas fa-exclamation-triangle text-orange-400 text-xs"></i> <span class="font-medium">CVE-2024-6387</span></div>
+              <p class="text-xs text-gray-400 mt-0.5">Spring Framework RCE</p>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded">High</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-span-4 card p-5 bg-gradient-to-br from-cyan-950/40 to-transparent">
+        <h3 class="font-semibold flex items-center gap-2 mb-4"><i class="fas fa-lightbulb text-yellow-400"></i> Security Tips</h3>
+        <div class="space-y-3 text-sm">
+          <div class="flex items-start gap-3">
+            <i class="fas fa-check text-green-400 mt-0.5"></i>
+            <div>
+              <p class="font-medium">Use prepared statements</p>
+              <p class="text-xs text-gray-400">(prevent SQL Injection)</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <i class="fas fa-check text-green-400 mt-0.5"></i>
+            <div>
+              <p class="font-medium">Enable security headers</p>
+              <p class="text-xs text-gray-400">(CSP, HSTS, X-Frame-Options)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- CERTWATCH SECTION (Dynamic, API-backed)     -->
+  <!-- ========================================== -->
+  <section id="certwatch" class="p-6 hidden space-y-6">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div>
+        <h2 class="text-2xl font-bold flex items-center gap-2"><i class="fas fa-certificate text-blue-400"></i> CertWatch</h2>
+        <p class="text-gray-400 text-sm mt-1">Personal SSL/TLS Certificate Monitor. Independent of VulnScope CVSS scoring.</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <input type="text" id="certDomainInput" placeholder="e.g. example.com" class="bg-black/40 border border-gray-700 rounded-lg pl-4 pr-10 py-2.5 text-sm outline-none focus:border-blue-400 w-64">
+        <button onclick="addCertWatch()" class="bg-gradient-to-r from-blue-500 to-cyan-500 text-black font-semibold px-5 py-2.5 rounded-lg flex items-center gap-2 hover:opacity-90 transition">
+          <i class="fas fa-plus"></i> Add Domain
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="flex items-center justify-between mb-4 border-b border-gray-800 pb-4">
+        <h3 class="font-semibold text-lg">Monitored Domains</h3>
+        <button onclick="loadCertWatches()" class="text-xs text-cyan-400 hover:text-white flex items-center gap-1">
+          <i class="fas fa-refresh"></i> Refresh All
+        </button>
+      </div>
+      
+      <div id="certTableLoading" class="p-8 text-center">
+        <div class="h-10 skeleton w-1/3 mx-auto mb-2"></div>
+        <div class="h-10 skeleton w-1/2 mx-auto"></div>
+        <p class="text-xs text-gray-500 mt-2">Loading certificates...</p>
+      </div>
+
+      <div id="certTableEmpty" class="hidden p-8 text-center">
+        <div class="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-500">
+          <i class="fas fa-certificate text-2xl"></i>
+        </div>
+        <h3 class="font-semibold mb-2">No monitored domains</h3>
+        <p class="text-xs text-gray-400 mb-4">Add a domain above to start monitoring its SSL/TLS certificate.</p>
+      </div>
+
+      <table id="certTable" class="w-full text-left border-collapse hidden">
+        <thead>
+          <tr class="text-gray-400 text-xs uppercase tracking-wider">
+            <th class="py-3 px-4">Domain</th>
+            <th class="py-3 px-4">Issuer</th>
+            <th class="py-3 px-4">Expiry Date</th>
+            <th class="py-3 px-4">Days Left</th>
+            <th class="py-3 px-4">Status</th>
+            <th class="py-3 px-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="certTableBody" class="text-sm">
+          <!-- Rows injected by JS -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Other sections (simplified for brevity) -->
+  <section id="scan" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">New Scan</h2><p class="text-gray-400">Authorization-required scan interface would go here.</p></section>
+  <section id="history" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Scan History</h2><p class="text-gray-400">Full assessment history table.</p></section>
+  <section id="reports" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Reports</h2><p class="text-gray-400">Downloadable PDF reports.</p></section>
+  <section id="remediation" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Remediation</h2><p class="text-gray-400">Code fixes and recommendations.</p></section>
+  <section id="resources" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Resources</h2><p class="text-gray-400">Educational security guides.</p></section>
+  <section id="developers" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Developers</h2><p class="text-gray-400">Team profiles and contributions.</p></section>
+  <section id="admin" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Admin Panel</h2><p class="text-gray-400">User and platform management.</p></section>
+</main>
+
+<script>
+// --- Config ---
+const API_BASE = 'http://localhost:8000';
+let token = localStorage.getItem('vulnscope_token');
+
+// --- Auth headers ---
+function authHeaders() {
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
+// --- Toast ---
+function toast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// --- Navigation ---
+function show(id) {
+  document.querySelectorAll('main section').forEach(s => s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  document.querySelectorAll('nav a').forEach(a => {
+    a.classList.remove('nav-active');
+    a.classList.add('text-gray-400');
+  });
+  event.currentTarget.classList.add('nav-active');
+  event.currentTarget.classList.remove('text-gray-400');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (id === 'certwatch') loadCertWatches();
+}
+
+// --- CertWatch: API helpers ---
+async function api(path, opts = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...opts,
+    headers: { ...authHeaders(), ...(opts.headers || {}) }
+  });
+  if (res.status === 401) {
+    localStorage.removeItem('vulnscope_token');
+    token = null;
+    toast('Session expired. Please sign in again.', 'error');
+    throw new Error('Session expired');
+  }
+  return res;
+}
+
+// --- CertWatch: Load ---
+async function loadCertWatches() {
+  const loading = document.getElementById('certTableLoading');
+  const empty = document.getElementById('certTableEmpty');
+  const table = document.getElementById('certTable');
+  const body = document.getElementById('certTableBody');
+
+  loading.classList.remove('hidden');
+  empty.classList.add('hidden');
+  table.classList.add('hidden');
+  body.innerHTML = '';
+
+  try {
+    const res = await api('/certwatch/');
+    if (!res.ok) throw new Error('Failed to load certificates');
+    const watches = await res.json();
+
+    loading.classList.add('hidden');
+
+    if (!watches || watches.length === 0) {
+      empty.classList.remove('hidden');
+      return;
+    }
+
+    table.classList.remove('hidden');
+    body.innerHTML = watches.map(w => certRow(w)).join('');
+  } catch (err) {
+    loading.classList.add('hidden');
+    empty.classList.remove('hidden');
+    empty.querySelector('h3').textContent = 'Unable to load certificates';
+    empty.querySelector('p').textContent = err.message || 'Try again later.';
+    toast(err.message, 'error');
+  }
+}
+
+function certRow(w) {
+  const statusClass = {
+    valid: 'badge-valid',
+    expiring_soon: 'badge-expiring',
+    expired: 'badge-expired',
+    unknown: 'badge-unknown',
+    error: 'badge-error',
+  }[w.status] || 'badge-unknown';
+
+  const statusLabel = {
+    valid: 'Valid',
+    expiring_soon: 'Expiring Soon',
+    expired: 'Expired',
+    unknown: 'Unknown',
+    error: 'Error',
+  }[w.status] || 'Unknown';
+
+  const expiry = w.expiry_date ? new Date(w.expiry_date).toLocaleDateString() : '—';
+  const days = w.days_remaining != null ? w.days_remaining : '—';
+  const issuer = w.issuer || '—';
+  const lastChecked = w.last_checked ? new Date(w.last_checked).toLocaleString() : 'Never';
+
+  return `
+    <tr class="border-b border-gray-800 hover:bg-white/5 transition">
+      <td class="py-4 px-4 mono text-cyan-400" title="${w.domain}">${w.domain}</td>
+      <td class="py-4 px-4 text-gray-300">${issuer}</td>
+      <td class="py-4 px-4 text-gray-300">${expiry}</td>
+      <td class="py-4 px-4 mono text-sm">${days}</td>
+      <td class="py-4 px-4"><span class="badge ${statusClass}">${statusLabel}</span></td>
+      <td class="py-4 px-4 text-right">
+        <div class="flex items-center justify-end gap-2">
+          <button onclick="recheckCert(${w.id}, '${escapeHtml(w.domain)}')" class="text-gray-400 hover:text-blue-400 p-1.5" title="Re-check" aria-label="Re-check ${w.domain}">
+            <i class="fas fa-rotate"></i>
+          </button>
+          <button onclick="deleteCert(${w.id})" class="text-gray-400 hover:text-red-400 p-1.5" title="Delete" aria-label="Delete ${w.domain}">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// --- CertWatch: Add ---
+async function addCertWatch() {
+  const input = document.getElementById('certDomainInput');
+  const domain = input.value.trim();
+  if (!domain) { toast('Please enter a domain', 'error'); return; }
+
+  const btn = event.currentTarget;
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+  btn.disabled = true;
+
+  try {
+    const res = await api('/certwatch/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to add domain');
+    }
+    const watch = await res.json();
+    toast(`Added ${watch.domain}`, 'success');
+    input.value = '';
+    loadCertWatches();
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    btn.innerHTML = orig;
+    btn.disabled = false;
+  }
+}
+
+// Allow Enter key to add domain
+document.getElementById('certDomainInput')?.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') addCertWatch();
+});
+
+// --- CertWatch: Re-check ---
+async function recheckCert(id, domain) {
+  const btn = event.currentTarget;
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+  btn.disabled = true;
+
+  try {
+    const res = await api(`/certwatch/${id}/check`, { method: 'POST' });
+    if (!res.ok) throw new Error('Re-check failed');
+    const result = await res.json();
+
+    // Update the row in place
+    const row = btn.closest('tr');
+    if (row) {
+      row.innerHTML = certRow({
+        id,
+        domain: result.domain,
+        issuer: result.issuer,
+        expiry_date: result.expiry_date,
+        status: result.status,
+        days_remaining: result.days_remaining,
+        last_checked: new Date().toISOString(),
+      });
+    }
+
+    toast(`${domain} re-checked: ${result.status}`, 'success');
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    btn.innerHTML = orig;
+    btn.disabled = false;
+  }
+}
+
+// --- CertWatch: Delete ---
+async function deleteCert(id) {
+  if (!confirm('Remove this domain from monitoring?')) return;
+
+  const btn = event.currentTarget;
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+  btn.disabled = true;
+
+  try {
+    const res = await api(`/certwatch/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Delete failed');
+    btn.closest('tr').remove();
+    toast('Domain removed', 'success');
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    btn.innerHTML = orig;
+    btn.disabled = false;
+  }
+}
+
+// --- Charts (VulnScope only, decorative) ---
+const green = '#00ff88';
+const cyan = '#00f0ff';
+const red = '#ff3b5c';
+const orange = '#ff8c42';
+const yellow = '#ffd93d';
+const blue = '#4d9fff';
+const gray = '#6b7280';
+
+function spark(id, data, color) {
+  new Chart(document.getElementById(id), {
+    type: 'line',
+    data: { labels: Array(data.length).fill(''), datasets: [{ data, borderColor: color, borderWidth: 2, pointRadius: 0, tension: 0.4, fill: false }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+  });
+}
+spark('spark1', [20,25,22,30,28,35,32,40], cyan);
+spark('spark2', [15,18,22,20,28,25,30,35], red);
+spark('spark3', [60,62,65,68,70,71,72,73], green);
+
+new Chart(document.getElementById('scoreChart'), {
+  type: 'doughnut',
+  data: { datasets: [{ data: [73, 27], backgroundColor: [green, '#1a2332'], borderWidth: 0 }] },
+  options: { cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { animateRotate: true } }
+});
+
+new Chart(document.getElementById('lineChart'), {
+  type: 'line',
+  data: {
+    labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+    datasets: [{ data: [40, 52, 68, 62, 75, 82, 70], borderColor: cyan, backgroundColor: 'rgba(0,240,255,0.1)', fill: true, tension: 0.4, pointBackgroundColor: cyan, pointRadius: 4 }]
+  },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100, grid: { color: '#1a2332' }, ticks: { color: '#6b7280', font: { size: 10 } } }, x: { grid: { display: false }, ticks: { color: '#6b7280', font: { size: 10 } } } } }
+});
+
+new Chart(document.getElementById('donutChart'), {
+  type: 'doughnut',
+  data: { labels: ['Critical','High','Medium','Low','Info'], datasets: [{ data: [12, 28, 42, 31, 19], backgroundColor: [red, orange, yellow, blue, gray], borderWidth: 0 }] },
+  options: { cutout: '65%', plugins: { legend: { display: false } }, animation: { animateRotate: true } }
+});
+</script>
+</body>
+</html>

@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-
-if TYPE_CHECKING:
-    from app.models.target import Target as TargetModel
+from app.models.target import Target
 
 
 class Scan(Base):
@@ -42,7 +39,7 @@ class Scan(Base):
         DateTime(timezone=True), nullable=True
     )
 
-    target: Mapped[TargetModel] = relationship(back_populates="scans")
+    target: Mapped[Target] = relationship(back_populates="scans")
     vulnerabilities: Mapped[list[Vulnerability]] = relationship(
         back_populates="scan",
         cascade="all, delete-orphan",
@@ -93,7 +90,7 @@ class ScheduledScan(Base):
         nullable=False,
     )
 
-    target: Mapped[TargetModel] = relationship()
+    target: Mapped[Target] = relationship()
 
 
 class Vulnerability(Base):

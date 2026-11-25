@@ -31,7 +31,7 @@ services:
       - "8080:8080"
     command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true -config api.disablekey=true
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
       interval: 10s
       timeout: 10s
       retries: 20
@@ -41,11 +41,11 @@ services:
     build: .
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_started
       redis:
-        condition: service_healthy
+        condition: service_started
       zap:
-        condition: service_healthy
+        condition: service_started
     environment:
       DATABASE_URL: postgresql+psycopg2://vulnscope:vulnscope@db:5432/vulnscope
       JWT_SECRET: ${JWT_SECRET:-change-me-dev-secret}
@@ -63,11 +63,11 @@ services:
     command: celery -A app.worker.celery_app worker --loglevel=info
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_started
       redis:
-        condition: service_healthy
+        condition: service_started
       zap:
-        condition: service_healthy
+        condition: service_started
     environment:
       DATABASE_URL: postgresql+psycopg2://vulnscope:vulnscope@db:5432/vulnscope
       REDIS_URL: redis://redis:6379/0
