@@ -65,7 +65,7 @@ def create_app() -> FastAPI:
 
     @app.get("/auth/login", response_class=HTMLResponse)
     async def login_page(request: Request) -> HTMLResponse:
-        return templates.TemplateResponse("login.html", {"request": request})
+        return templates.TemplateResponse(request, "login.html")
 
     @app.get("/dashboard", response_class=HTMLResponse)
     async def dashboard(
@@ -117,9 +117,9 @@ def create_app() -> FastAPI:
         ]
 
         return templates.TemplateResponse(
+            request,
             "dashboard.html",
             {
-                "request": request,
                 "user": user,
                 "total_scans": total_scans,
                 "issues_found": issues_found,
@@ -144,7 +144,7 @@ def create_app() -> FastAPI:
         request: Request,
         user: User = Depends(get_current_user_from_cookie),
     ):
-        return templates.TemplateResponse("certwatch.html", {"request": request, "user": user})
+        return templates.TemplateResponse(request, "certwatch.html", {"user": user})
 
     # ------------------------------------------------------------------
     # System routes
