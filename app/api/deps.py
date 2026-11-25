@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy import select
@@ -11,6 +11,7 @@ from app.db.session import get_db
 from app.models.user import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
 
 _CREDENTIALS_EXCEPTION = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -35,6 +36,49 @@ def get_current_user(
     user = db.scalar(select(User).where(User.id == user_id))
     if user is None:
         raise _CREDENTIALS_EXCEPTION
+    return user
+
+
+def get_current_user_optional(
+    token: str | None = Depends(oauth2_scheme_optional),
+    db: Session = Depends(get_db),
+) -> User | None:
+    if not token:
+        return None
+    try:
+        payload = decode_access_token(token)
+        user_id = int(payload.get("sub"))
+    except (JWTError, ValueError, TypeError):
+        return None
+    return db.scalar(select(User).where(User.id == user_id))
+
+
+def get_current_user_from_cookie(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> User:
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    try:
+        payload = decode_access_token(token)
+        user_id = int(payload.get("sub"))
+    except (JWTError, ValueError, TypeError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        ) from exc
+
+    user = db.scalar(select(User).where(User.id == user_id))
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
     return user
 
 

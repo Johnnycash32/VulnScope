@@ -156,7 +156,7 @@
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-sm font-bold">JE</div>
         <div class="text-sm">
-          <p class="font-medium">John Eludini</p>
+          <p class="font-medium">{{ user.username or user.email }}</p>
           <p class="text-[11px] text-gray-500">Pro User</p>
         </div>
         <i class="fas fa-chevron-down text-xs text-gray-500"></i>
@@ -204,7 +204,7 @@
             <i class="fas fa-crosshairs text-cyan-400"></i>
             <span class="text-green-400 text-xs">↑ 12%</span>
           </div>
-          <p class="text-3xl font-bold mt-2">247</p>
+          <p class="text-3xl font-bold mt-2">{{ total_scans }}</p>
           <p class="text-xs text-gray-500">Total Scans</p>
           <canvas id="spark1" class="mt-2 h-8"></canvas>
         </div>
@@ -213,7 +213,7 @@
             <i class="fas fa-shield-exclamation text-red-400"></i>
             <span class="text-red-400 text-xs">↑ 18%</span>
           </div>
-          <p class="text-3xl font-bold mt-2 text-red-400">89</p>
+          <p class="text-3xl font-bold mt-2 text-red-400">{{ issues_found }}</p>
           <p class="text-xs text-gray-500">Issues Found</p>
           <canvas id="spark2" class="mt-2 h-8"></canvas>
         </div>
@@ -222,7 +222,7 @@
             <i class="fas fa-shield-check text-green-400"></i>
             <span class="text-green-400 text-xs">↑ 5%</span>
           </div>
-          <p class="text-3xl font-bold mt-2 text-green-400">73%</p>
+          <p class="text-3xl font-bold mt-2 text-green-400">{{ security_score }}%</p>
           <p class="text-xs text-gray-500">Sites Secure</p>
           <canvas id="spark3" class="mt-2 h-8"></canvas>
         </div>
@@ -244,16 +244,16 @@
           <div class="relative w-36 h-36 flex-shrink-0">
             <canvas id="scoreChart"></canvas>
             <div class="absolute inset-0 flex flex-col items-center justify-center">
-              <span class="text-3xl font-bold text-green-400">73%</span>
+              <span class="text-3xl font-bold text-green-400">{{ security_score }}%</span>
               <span class="text-[10px] text-gray-400">Security Score</span>
             </div>
           </div>
           <div class="flex-1 space-y-2 text-sm">
-            <div class="flex items-center gap-2"><span class="severity-dot bg-red-500"></span> Critical <span class="ml-auto mono">12</span></div>
-            <div class="flex items-center gap-2"><span class="severity-dot bg-orange-500"></span> High <span class="ml-auto mono">28</span></div>
-            <div class="flex items-center gap-2"><span class="severity-dot bg-yellow-400"></span> Medium <span class="ml-auto mono">42</span></div>
-            <div class="flex items-center gap-2"><span class="severity-dot bg-blue-400"></span> Low <span class="ml-auto mono">31</span></div>
-            <div class="flex items-center gap-2"><span class="severity-dot bg-gray-400"></span> Info <span class="ml-auto mono">19</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-red-500"></span> Critical <span class="ml-auto mono text-red-400">{{ critical_count }}</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-orange-500"></span> High <span class="ml-auto mono text-orange-400">{{ high_count }}</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-yellow-400"></span> Medium <span class="ml-auto mono text-yellow-400">{{ medium_count }}</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-blue-400"></span> Low <span class="ml-auto mono text-blue-400">{{ low_count }}</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-gray-400"></span> Info <span class="ml-auto mono text-gray-400">{{ info_count }}</span></div>
           </div>
           <div class="flex-1">
             <canvas id="lineChart"></canvas>
@@ -267,16 +267,16 @@
           <div class="relative w-40 h-40">
             <canvas id="donutChart"></canvas>
             <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span class="text-2xl font-bold">132</span>
+              <span class="text-2xl font-bold">{{ total_vulns }}</span>
               <span class="text-[10px] text-gray-400">Total</span>
             </div>
           </div>
           <div class="flex-1 space-y-2.5 text-sm">
-            <div class="flex items-center gap-2"><span class="severity-dot bg-red-500"></span> Critical <span class="ml-auto mono text-gray-400">12 (9.1%)</span></div>
-            <div class="flex items-center gap-2"><span class="severity-dot bg-orange-500"></span> High <span class="ml-auto mono text-gray-400">28 (21.2%)</span></div>
-            <div class="flex items-center gap-2"><span class="severity-dot bg-yellow-400"></span> Medium <span class="ml-auto mono text-gray-400">42 (31.8%)</span></div>
-            <div class="flex items-center gap-2"><span class="severity-dot bg-blue-400"></span> Low <span class="ml-auto mono text-gray-400">31 (23.5%)</span></div>
-            <div class="flex items-center gap-2"><span class="severity-dot bg-gray-400"></span> Info <span class="ml-auto mono text-gray-400">19 (13.4%)</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-red-500"></span> Critical <span class="ml-auto mono text-gray-400">{{ critical_count }} ({{ critical_pct }}%)</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-orange-500"></span> High <span class="ml-auto mono text-gray-400">{{ high_count }} ({{ high_pct }}%)</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-yellow-400"></span> Medium <span class="ml-auto mono text-gray-400">{{ medium_count }} ({{ medium_pct }}%)</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-blue-400"></span> Low <span class="ml-auto mono text-gray-400">{{ low_count }} ({{ low_pct }}%)</span></div>
+            <div class="flex items-center gap-2"><span class="severity-dot bg-gray-400"></span> Info <span class="ml-auto mono text-gray-400">{{ info_count }} ({{ info_pct }}%)</span></div>
           </div>
         </div>
       </div>
@@ -290,18 +290,25 @@
           <a class="text-xs text-cyan-400">View All →</a>
         </div>
         <div class="space-y-3 text-sm">
-          <div class="scan-row flex items-center justify-between py-1.5 rounded">
-            <div class="flex items-center gap-3"><i class="fas fa-globe text-cyan-400 text-xs"></i> <span class="mono text-xs">https://example.com</span></div>
-            <div class="flex items-center gap-3"><span class="text-green-400 text-xs">✓ Completed</span> <span class="text-gray-500 text-xs">2m ago</span></div>
-          </div>
-          <div class="scan-row flex items-center justify-between py-1.5 rounded">
-            <div class="flex items-center gap-3"><i class="fas fa-globe text-cyan-400 text-xs"></i> <span class="mono text-xs">https://testsite.dev</span></div>
-            <div class="flex items-center gap-3"><span class="text-green-400 text-xs">✓ Completed</span> <span class="text-gray-500 text-xs">15m ago</span></div>
-          </div>
-          <div class="scan-row flex items-center justify-between py-1.5 rounded">
-            <div class="flex items-center gap-3"><i class="fas fa-globe text-cyan-400 text-xs"></i> <span class="mono text-xs">https://demo.app</span></div>
-            <div class="flex items-center gap-3"><span class="text-red-400 text-xs">! Issues Found</span> <span class="text-gray-500 text-xs">32m ago</span></div>
-          </div>
+          {% if recent_scans %}
+            {% for scan in recent_scans %}
+            <div class="scan-row flex items-center justify-between py-1.5 rounded">
+              <div class="flex items-center gap-3"><i class="fas fa-globe text-cyan-400 text-xs"></i> <span class="mono text-xs" title="{{ scan.target_url }}">{{ scan.target_url.replace('https://', '').replace('http://', '') }}</span></div>
+              <div class="flex items-center gap-3">
+                {% if scan.status == 'completed' %}
+                  <span class="text-green-400 text-xs">✓ Completed</span>
+                {% elif scan.status == 'running' %}
+                  <span class="text-cyan-400 text-xs">⟳ Running</span>
+                {% else %}
+                  <span class="text-red-400 text-xs">! Failed</span>
+                {% endif %}
+                <span class="text-gray-500 text-xs">{{ scan.updated_at }}</span>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-xs text-gray-500 text-center py-4">No scans yet</p>
+          {% endif %}
         </div>
       </div>
 
@@ -672,7 +679,7 @@ spark('spark3', [60,62,65,68,70,71,72,73], green);
 
 new Chart(document.getElementById('scoreChart'), {
   type: 'doughnut',
-  data: { datasets: [{ data: [73, 27], backgroundColor: [green, '#1a2332'], borderWidth: 0 }] },
+  data: { datasets: [{ data: [{{ security_score }}, {{ 100 - security_score }}], backgroundColor: [green, '#1a2332'], borderWidth: 0 }] },
   options: { cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { animateRotate: true } }
 });
 
@@ -687,7 +694,7 @@ new Chart(document.getElementById('lineChart'), {
 
 new Chart(document.getElementById('donutChart'), {
   type: 'doughnut',
-  data: { labels: ['Critical','High','Medium','Low','Info'], datasets: [{ data: [12, 28, 42, 31, 19], backgroundColor: [red, orange, yellow, blue, gray], borderWidth: 0 }] },
+  data: { labels: ['Critical','High','Medium','Low','Info'], datasets: [{ data: [{{ critical_count }}, {{ high_count }}, {{ medium_count }}, {{ low_count }}, {{ info_count }}], backgroundColor: [red, orange, yellow, blue, gray], borderWidth: 0 }] },
   options: { cutout: '65%', plugins: { legend: { display: false } }, animation: { animateRotate: true } }
 });
 </script>
