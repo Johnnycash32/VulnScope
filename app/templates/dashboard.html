@@ -282,11 +282,10 @@
       </div>
     </div>
 
-    <!-- Bottom Row (Updated to 4 columns) -->
-    <div class="grid grid-cols-12 gap-6">
-
+    <!-- Bottom Row: 3 widgets -->
+    <div class="grid grid-cols-12 gap-6 mb-6">
       <!-- 1. Recent Scans -->
-      <div class="col-span-3 card p-5">
+      <div class="col-span-4 card p-5">
         <div class="flex justify-between items-center mb-4">
           <h3 class="font-semibold flex items-center gap-2"><i class="fas fa-clock text-cyan-400"></i> Recent Scans</h3>
           <a class="text-xs text-cyan-400">View →</a>
@@ -308,7 +307,7 @@
       </div>
 
       <!-- 2. Latest CVE Alerts -->
-      <div class="col-span-3 card p-5">
+      <div class="col-span-4 card p-5">
         <div class="flex justify-between items-center mb-4">
           <h3 class="font-semibold flex items-center gap-2"><i class="fas fa-shield text-cyan-400"></i> CVE Alerts</h3>
           <a class="text-xs text-cyan-400">View →</a>
@@ -332,7 +331,7 @@
       </div>
 
       <!-- 3. Security Tips -->
-      <div class="col-span-3 card p-5 bg-gradient-to-br from-cyan-950/40 to-transparent">
+      <div class="col-span-4 card p-5 bg-gradient-to-br from-cyan-950/40 to-transparent">
         <h3 class="font-semibold flex items-center gap-2 mb-4"><i class="fas fa-lightbulb text-yellow-400"></i> Tips</h3>
         <div class="space-y-3 text-sm">
           <div class="flex items-start gap-2">
@@ -349,14 +348,17 @@
           </div>
         </div>
       </div>
+    </div> <!-- End of 3-widget row -->
 
-      <!-- 4. NEW: CertWatch Summary -->
-      <div class="col-span-3 card p-5 bg-gradient-to-br from-blue-950/30 to-transparent border-blue-900/50">
+    <!-- CertWatch Row (full width, last) -->
+    <div class="grid grid-cols-12 gap-6">
+      <!-- 4. CertWatch Summary -->
+      <div class="col-span-12 card p-5 bg-gradient-to-br from-blue-950/30 to-transparent border-blue-900/50">
         <div class="flex justify-between items-center mb-4">
           <h3 class="font-semibold flex items-center gap-2"><i class="fas fa-certificate text-blue-400"></i> CertWatch</h3>
           <a onclick="show('certwatch')" class="text-xs text-blue-400 cursor-pointer hover:underline">View All →</a>
         </div>
-        <div class="space-y-3 text-sm">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div class="flex items-center justify-between">
             <span class="text-gray-400 text-xs">Monitored Domains</span>
             <span class="font-bold text-white">{{ cert_total_domains | default('12') }}</span>
@@ -371,8 +373,7 @@
           </div>
         </div>
       </div>
-
-    </div> <!-- End of Bottom Row -->
+    </div> <!-- End of CertWatch Row -->
   </section>
 
   <!-- ========================================== -->
