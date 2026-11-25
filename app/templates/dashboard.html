@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23050a12' rx='6'/%3E%3Cpath d='M8 8 l8 0 l0 8 l-8 0 z' fill='%2300f0ff'/%3E%3Cpath d='M12 12 l4 0 l0 4 l-4 0 z' fill='%2300ff88'/%3E%3C/svg%3E">
 <title>VulnScope | Automated Web Vulnerability Assessment</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -72,6 +73,14 @@
     border-radius: 4px;
   }
   @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .logo-anim {
+    width: 40px; height: 40px; border-radius: 12px; object-fit: cover; display: block;
+    border: 1px solid #1a2332;
+  }
+  .logo-anim-lg {
+    width: 80px; height: 80px; border-radius: 20px; object-fit: cover; display: block;
+    border: 1px solid #1a2332;
+  }
   .toast {
     position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 200;
     padding: 1rem 1.25rem; border-radius: 10px; color: white;
@@ -96,16 +105,16 @@
 
 <!-- Sidebar -->
 <aside class="fixed left-0 top-0 h-full w-[260px] bg-[#070d16] border-r border-[#1a2332] z-50 flex flex-col">
-  <div class="p-6 border-b border-[#1a2332]">
-    <div class="flex items-center gap-3 mb-1">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-green-400 flex items-center justify-center">
-        <i class="fas fa-shield-halved text-black text-lg"></i>
+    <div class="p-6 border-b border-[#1a2332]">
+      <div class="flex items-center gap-3 mb-1">
+        <video class="logo-anim" autoplay loop muted playsinline>
+          <source src="{{ url_for('static', filename='vulnscope-logo-anim.mp4') }}" type="video/mp4">
+        </video>
+        <div>
+          <h1 class="text-xl font-extrabold tracking-tight">Vuln<span class="text-cyan-400">Scope</span></h1>
+          <p class="text-[11px] text-gray-500">Scan · Analyse · Secure</p>
+        </div>
       </div>
-      <div>
-        <h1 class="text-xl font-extrabold tracking-tight">Vuln<span class="text-cyan-400">Scope</span></h1>
-        <p class="text-[11px] text-gray-500">Scan · Analyse · Secure</p>
-      </div>
-    </div>
   </div>
 
   <nav class="flex-1 p-3 space-y-1 text-sm overflow-y-auto">
