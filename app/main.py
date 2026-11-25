@@ -136,6 +136,9 @@ def create_app() -> FastAPI:
                 "low_pct": round(low_count / total_vulns * 100, 1),
                 "info_pct": round(info_count / total_vulns * 100, 1),
                 "recent_scans": recent_scan_list,
+                "cert_total_domains": 0,
+                "cert_expiring": 0,
+                "cert_expired": 0,
             },
         )
 
