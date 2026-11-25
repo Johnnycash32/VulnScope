@@ -67,6 +67,10 @@ def create_app() -> FastAPI:
     async def login_page(request: Request) -> HTMLResponse:
         return templates.TemplateResponse(request, "login.html")
 
+    @app.get("/auth/register", response_class=HTMLResponse)
+    async def register_page(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(request, "register.html")
+
     @app.get("/dashboard", response_class=HTMLResponse)
     async def dashboard(
         request: Request,
