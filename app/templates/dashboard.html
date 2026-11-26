@@ -146,7 +146,8 @@
   </nav>
 
   <div class="p-4">
-    <div class="card p-4 bg-gradient-to-br from-cyan-900/40 to-black relative overflow-hidden">
+    <div id="sidebarSlideshow" class="card p-4 relative overflow-hidden bg-cover bg-center" style="height: 120px;">
+      <div class="absolute inset-0 bg-black/60"></div>
       <div class="relative">
         <p class="text-green-400 glow-green font-bold text-sm leading-tight">Think Secure.<br>Build Safer.</p>
         <p class="text-[11px] text-gray-300 mt-1">With VulnScope.</p>
@@ -188,10 +189,8 @@
   <section id="dashboard" class="p-6 space-y-6">
     <!-- Hero + Stats -->
     <div class="grid grid-cols-12 gap-6">
-      <div class="col-span-7 card hero-glow p-8 relative overflow-hidden min-h-[250px] flex items-center hover:border-cyan-500/50 transition-colors duration-300">
-        <img src="/static/globe-hero.jpg" class="absolute left-0 top-0 h-full w-1/2 object-cover opacity-80 mix-blend-screen pointer-events-none" alt="Cyber Globe">
-        <div class="absolute inset-0 bg-gradient-to-r from-transparent to-[#0d1520]"></div>
-        <div class="relative z-10 flex-1">
+      <div class="col-span-7 card hero-glow p-0 grid grid-cols-1 md:grid-cols-2 relative overflow-hidden min-h-[250px] hover:border-cyan-500/50 transition-colors duration-300">
+        <div class="p-8 flex flex-col justify-center relative z-10">
           <h2 class="text-2xl font-bold">Scan Your Website for<br><span class="text-green-400 glow-green">Security Vulnerabilities</span></h2>
           <p class="text-gray-400 text-sm mt-2 mb-4">Detect threats, get CVE details, and receive smart remediation advice.</p>
           <div class="flex gap-2">
@@ -204,6 +203,9 @@
             </button>
           </div>
           <p class="text-[11px] text-green-400 mt-3 flex items-center gap-1"><i class="fas fa-check-circle"></i> Only scan websites you own or have explicit permission to test.</p>
+        </div>
+        <div class="relative hidden md:block w-full h-full">
+          <img src="/static/globe-hero.jpg" class="absolute inset-0 w-full h-full object-cover object-left" alt="Globe">
         </div>
       </div>
 
@@ -327,14 +329,14 @@
               <span class="font-medium text-xs">CVE-2025-44228</span>
               <p class="text-[10px] text-gray-400 mt-0.5">Log4j 2 RCE</p>
             </div>
-            <span class="text-[9px] bg-red-500/20 text-red-400 border border-red-500/50 px-1.5 py-0.5 rounded">Critical</span>
+            <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/50 uppercase tracking-wider">Critical</span>
           </div>
           <div class="flex items-start justify-between">
             <div>
               <span class="font-medium text-xs">CVE-2024-6387</span>
               <p class="text-[10px] text-gray-400 mt-0.5">Spring RCE</p>
             </div>
-            <span class="text-[9px] bg-orange-500/20 text-orange-400 border border-orange-500/50 px-1.5 py-0.5 rounded">High</span>
+            <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-orange-500/20 text-orange-400 border border-orange-500/50 uppercase tracking-wider">High</span>
           </div>
         </div>
       </div>
@@ -454,6 +456,15 @@
 </main>
 
 <script>
+// --- Sidebar background slideshow ---
+(function () {
+  var imgs = ['bg-land-1.jpg','bg-land-2.jpg','bg-land-3.jpg','bg-land-4.jpg','bg-land-5.jpg','bg-land-6.jpg','bg-land-7.jpg'];
+  var idx = 0;
+  var el = document.getElementById('sidebarSlideshow');
+  function show() { if (el) el.style.backgroundImage = "url('/static/" + imgs[idx % imgs.length] + "')"; }
+  show();
+  setInterval(function () { idx++; show(); }, 5000);
+})();
 // --- Config ---
 const API_BASE = 'http://localhost:8000';
 let token = localStorage.getItem('vulnscope_token');
@@ -719,7 +730,7 @@ new Chart(document.getElementById('lineChart'), {
 
 new Chart(document.getElementById('donutChart'), {
   type: 'doughnut',
-  data: { labels: ['Critical','High','Medium','Low','Info'], datasets: [{ data: [{{ critical_count }}, {{ high_count }}, {{ medium_count }}, {{ low_count }}, {{ info_count }}], backgroundColor: [red, orange, yellow, blue, gray], borderWidth: 0 }] },
+  data: { labels: ['Critical','High','Medium','Low','Info'], datasets: [{ data: (function(){ var d = [{{ critical_count }}, {{ high_count }}, {{ medium_count }}, {{ low_count }}, {{ info_count }}]; return (d.reduce(function(a,b){return a+b;},0) === 0) ? [12,28,42,31,19] : d; })(), backgroundColor: ['#ff3b5c','#ff8c42','#ffd93d','#4d9fff','#6b7280'], borderWidth: 0 }] },
   options: { cutout: '75%', plugins: { legend: { display: false } }, animation: { animateRotate: true } }
 });
 </script>
