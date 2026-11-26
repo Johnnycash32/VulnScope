@@ -177,6 +177,7 @@ def create_app() -> FastAPI:
                 "sites_secure": sites_secure,
                 "severity_counts": severity_counts,
                 "has_running_scans": has_running_scans,
+                "running_count": running_scans,
                 "critical_count": critical_count,
                 "high_count": high_count,
                 "medium_count": medium_count,
@@ -203,6 +204,23 @@ def create_app() -> FastAPI:
         if user is None:
             return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
         return templates.TemplateResponse(request, "certwatch.html", {"user": user})
+
+    @app.get("/dashboard/runs")
+    async def dashboard_runs(
+        user: User | None = Depends(get_current_user_from_cookie_optional),
+        db: Session = Depends(get_db),
+    ) -> dict[str, int]:
+        if user is None:
+            return {"running": 0}
+        running = db.scalar(
+            select(func.count(Scan.id))
+            .join(Target, Target.id == Scan.target_id)
+            .where(
+                Target.user_id == user.id,
+                Scan.status.in_(["pending", "running"]),
+            )
+        ) or 0
+        return {"running": running}
 
     # ------------------------------------------------------------------
     # Sidebar tab pages (Coming Soon — never 404)
