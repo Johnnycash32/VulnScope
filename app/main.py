@@ -16,6 +16,7 @@ from app.api.deps import (
 from app.api.routes import admin, auth, certwatch, reports, scans, scheduled_scans, targets, users
 from app.core.config import get_settings
 from app.db.session import get_db
+from app.models.certwatch import CertWatch
 from app.models.scan import Scan, Vulnerability
 from app.models.target import Target
 from app.models.user import User
@@ -166,6 +167,71 @@ def create_app() -> FastAPI:
             for s in recent_scans
         ]
 
+        all_scan_rows = db.execute(
+            select(Scan)
+            .options(selectinload(Scan.vulnerabilities))
+            .join(Target, Target.id == Scan.target_id)
+            .where(Target.user_id == user.id)
+            .order_by(Scan.created_at.desc())
+        ).scalars().all()
+        reports_list = [
+            {
+                "id": s.id,
+                "target_url": s.target.url if s.target else "",
+                "status": s.status,
+                "created_at": s.created_at.strftime("%Y-%m-%d %H:%M")
+                if s.created_at
+                else "",
+                "vuln_count": len(s.vulnerabilities),
+            }
+            for s in all_scan_rows
+        ]
+
+        remediation_rows = db.execute(
+            select(Vulnerability)
+            .join(Scan, Scan.id == Vulnerability.scan_id)
+            .join(Target, Target.id == Scan.target_id)
+            .where(Target.user_id == user.id)
+            .order_by(Vulnerability.cvss_score.desc().nulls_last())
+            .limit(50)
+        ).scalars().all()
+        remediations_list = [
+            {
+                "name": v.name,
+                "risk": v.risk,
+                "cve_id": v.cve_id,
+                "cvss_score": v.cvss_score,
+                "solution": v.solution,
+                "remediation_code": v.remediation_code,
+            }
+            for v in remediation_rows
+        ]
+
+        cert_total = (
+            db.scalar(
+                select(func.count(CertWatch.id)).where(CertWatch.user_id == user.id)
+            )
+            or 0
+        )
+        cert_expiring = (
+            db.scalar(
+                select(func.count(CertWatch.id)).where(
+                    CertWatch.user_id == user.id,
+                    CertWatch.status == "expiring_soon",
+                )
+            )
+            or 0
+        )
+        cert_expired = (
+            db.scalar(
+                select(func.count(CertWatch.id)).where(
+                    CertWatch.user_id == user.id,
+                    CertWatch.status == "expired",
+                )
+            )
+            or 0
+        )
+
         return templates.TemplateResponse(
             request,
             "dashboard.html",
@@ -190,9 +256,11 @@ def create_app() -> FastAPI:
                 "low_pct": round(low_count / total_vulns * 100, 1),
                 "info_pct": round(info_count / total_vulns * 100, 1),
                 "recent_scans": recent_scan_list,
-                "cert_total_domains": 0,
-                "cert_expiring": 0,
-                "cert_expired": 0,
+                "reports": reports_list,
+                "remediations": remediations_list,
+                "cert_total_domains": cert_total,
+                "cert_expiring": cert_expiring,
+                "cert_expired": cert_expired,
             },
         )
 

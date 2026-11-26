@@ -373,22 +373,23 @@
     <div class="grid grid-cols-12 gap-6">
       <!-- 4. CertWatch Summary -->
       <div class="col-span-12 card p-5 bg-gradient-to-br from-blue-950/30 to-transparent border-blue-900/50 hover:border-cyan-500/50 transition-colors duration-300">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="font-semibold flex items-center gap-2"><i class="fas fa-certificate text-blue-400"></i> CertWatch</h3>
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="font-semibold flex items-center gap-2"><i class="fas fa-certificate text-blue-400"></i> CertWatch <span class="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Superpower</span></h3>
           <a onclick="show('certwatch')" class="text-xs text-blue-400 cursor-pointer hover:underline">View All →</a>
         </div>
+        <p class="text-xs text-gray-400 mb-4 leading-relaxed">Proactive SSL/TLS certificate monitoring. CertWatch warns you <span class="text-blue-300 font-medium">before</span> a certificate expires and causes an outage — something reactive CVSS/vulnerability scanning alone can't do. It watches issuer, expiry date, and days remaining for every domain you own.</p>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between bg-black/20 rounded-lg px-3 py-2">
             <span class="text-gray-400 text-xs">Monitored Domains</span>
-            <span class="font-bold text-white">{{ cert_total_domains | default('12') }}</span>
+            <span class="font-bold text-white">{{ cert_total_domains }}</span>
           </div>
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between bg-black/20 rounded-lg px-3 py-2">
             <span class="text-gray-400 text-xs">Expiring Soon</span>
-            <span class="font-bold text-yellow-400">{{ cert_expiring | default('3') }}</span>
+            <span class="font-bold text-yellow-400">{{ cert_expiring }}</span>
           </div>
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between bg-black/20 rounded-lg px-3 py-2">
             <span class="text-gray-400 text-xs">Expired</span>
-            <span class="font-bold text-red-400">{{ cert_expired | default('1') }}</span>
+            <span class="font-bold text-red-400">{{ cert_expired }}</span>
           </div>
         </div>
       </div>
@@ -488,9 +489,58 @@
       </table>
     </div>
   </section>
-  <section id="reports" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Reports</h2><p class="text-gray-400">Downloadable PDF reports.</p></section>
+  <section id="reports" class="p-8 hidden">
+    <h2 class="text-2xl font-bold mb-2">Reports</h2>
+    <p class="text-gray-400 text-sm mb-6">Download any scan report as PDF, HTML, or JSON.</p>
+    <div class="card p-5 overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead><tr class="text-gray-400 text-xs uppercase border-b border-gray-800">
+          <th class="py-3 px-2">Target</th><th class="py-3 px-2">Date</th><th class="py-3 px-2">Status</th><th class="py-3 px-2">Vulns</th><th class="py-3 px-2 text-right">Download</th>
+        </tr></thead>
+        <tbody>
+        {% for r in reports %}
+          <tr class="border-b border-gray-800">
+            <td class="py-3 px-2 mono text-cyan-400 truncate max-w-[220px]">{{ r.target_url }}</td>
+            <td class="py-3 px-2 text-gray-400">{{ r.created_at }}</td>
+            <td class="py-3 px-2">{{ r.status }}</td>
+            <td class="py-3 px-2">{{ r.vuln_count }}</td>
+            <td class="py-3 px-2 text-right whitespace-nowrap">
+              <a href="/scans/{{ r.id }}/report?format=pdf" class="text-xs text-cyan-400 hover:underline">PDF</a>
+              <a href="/scans/{{ r.id }}/report?format=html" class="text-xs text-cyan-400 hover:underline ml-2">HTML</a>
+              <a href="/scans/{{ r.id }}/report?format=json" class="text-xs text-cyan-400 hover:underline ml-2">JSON</a>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="py-4 text-center text-gray-500">No reports yet. Run a scan first.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
   <section id="scanDetail" class="p-8 hidden"></section>
-  <section id="remediation" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Remediation</h2><p class="text-gray-400">Code fixes and recommendations.</p></section>
+  <section id="remediation" class="p-8 hidden">
+    <h2 class="text-2xl font-bold mb-2">Remediation</h2>
+    <p class="text-gray-400 text-sm mb-6">Prioritized fixes for the vulnerabilities found across your scans, highest CVSS first.</p>
+    <div class="space-y-4">
+    {% for rem in remediations %}
+      <div class="card p-5">
+        <div class="flex justify-between items-start mb-2 gap-2">
+          <h3 class="font-semibold text-sm">{{ rem.name }}</h3>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap
+            {% if rem.risk == 'High' %}bg-red-500/20 text-red-400 border border-red-500/50
+            {% elif rem.risk == 'Medium' %}bg-orange-500/20 text-orange-400 border border-orange-500/50
+            {% elif rem.risk == 'Low' %}bg-yellow-500/20 text-yellow-400 border border-yellow-500/50
+            {% else %}bg-gray-500/20 text-gray-400 border border-gray-500/50{% endif %}">{{ rem.risk }}</span>
+        </div>
+        {% if rem.solution %}<p class="text-xs text-gray-300 mb-2"><b>Fix:</b> {{ rem.solution }}</p>{% endif %}
+        {% if rem.remediation_code %}<pre class="text-[11px] bg-black/40 p-3 rounded overflow-x-auto mono text-green-300">{{ rem.remediation_code }}</pre>{% endif %}
+        <p class="text-[10px] text-gray-500 mt-2">{{ rem.cve_id or 'No CVE' }} · CVSS {{ rem.cvss_score if rem.cvss_score is not none else '—' }}</p>
+      </div>
+    {% else %}
+      <p class="text-gray-500">No remediations yet. Run a scan to see recommended fixes.</p>
+    {% endfor %}
+    </div>
+  </section>
   <section id="resources" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Resources</h2><p class="text-gray-400">Educational security guides.</p></section>
   <section id="developers" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Developers</h2><p class="text-gray-400">Team profiles and contributions.</p></section>
   <section id="admin" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Admin Panel</h2><p class="text-gray-400">User and platform management.</p></section>
