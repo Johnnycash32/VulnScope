@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23050a12' rx='6'/%3E%3Cpath d='M8 8 l8 0 l0 8 l-8 0 z' fill='%2300f0ff'/%3E%3Cpath d='M12 12 l4 0 l0 4 l-4 0 z' fill='%2300ff88'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2 L4 8 L4 26 L16 30 L28 26 L28 8 Z' fill='%23050a12'/%3E%3Cpath d='M16 6 L8 10 L8 22 L16 26 L24 22 L24 10 Z' fill='%2300f0ff'/%3E%3Cpath d='M16 10 L12 14 L12 18 L16 22 L20 18 L20 14 Z' fill='%2300ff88'/%3E%3C/svg%3E">
 <title>VulnScope | Automated Web Vulnerability Assessment</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -80,6 +80,12 @@
   .logo-anim-lg {
     width: 80px; height: 80px; border-radius: 20px; object-fit: cover; display: block;
     border: 1px solid #1a2332;
+  }
+  @media (max-width: 640px) {
+    .logo-anim { width: 32px; height: 32px; border-radius: 10px; }
+    .logo-anim-lg { width: 60px; height: 60px; border-radius: 16px; }
+    aside.w-\[260px\] { width: 200px; }
+    main.ml-\[260px\] { margin-left: 200px; }
   }
   .toast {
     position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 200;
