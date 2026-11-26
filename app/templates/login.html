@@ -173,7 +173,7 @@ function startBg() {
   if (bgTimer) clearInterval(bgTimer);
   bgIdx = 0;
   showBg();
-  bgTimer = setInterval(() => { bgIdx++; showBg(); }, 5000);
+  bgTimer = setInterval(() => { bgIdx++; showBg(); }, 8000);
 }
 
 window.addEventListener('resize', () => { bgIdx = 0; showBg(); });
