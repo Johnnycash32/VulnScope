@@ -21,9 +21,14 @@ _CREDENTIALS_EXCEPTION = HTTPException(
 
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
+    token: str | None = Depends(oauth2_scheme_optional),
     db: Session = Depends(get_db),
 ) -> User:
+    if not token:
+        token = request.cookies.get("access_token")
+    if not token:
+        raise _CREDENTIALS_EXCEPTION
     try:
         payload = decode_access_token(token)
         subject = payload.get("sub")

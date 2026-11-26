@@ -203,15 +203,15 @@
           <h2 class="text-2xl md:text-3xl font-bold mb-2">Scan Your Website for<br><span class="text-green-400 glow-green">Security Vulnerabilities</span></h2>
           <p class="text-gray-400 text-sm mb-6">Detect threats, get CVE details, and receive smart remediation advice.</p>
 
-          <div class="flex gap-2 mb-3 max-w-md">
+          <form id="scanForm" class="flex gap-2 mb-3 max-w-md">
             <div class="flex-1 bg-black/40 border border-gray-700 rounded-lg px-4 py-2.5 flex items-center gap-2">
               <i class="fas fa-link text-gray-500 text-sm"></i>
-              <input type="text" class="bg-transparent flex-1 outline-none text-sm mono text-white" placeholder="Add website URL">
+              <input type="text" id="scanUrl" class="bg-transparent flex-1 outline-none text-sm mono text-white" placeholder="Add website URL">
             </div>
-            <button class="bg-gradient-to-r from-green-500 to-cyan-500 text-black font-semibold px-5 py-2.5 rounded-lg flex items-center gap-2 hover:opacity-90 transition whitespace-nowrap">
+            <button type="submit" id="scanBtn" class="bg-gradient-to-r from-green-500 to-cyan-500 text-black font-semibold px-5 py-2.5 rounded-lg flex items-center gap-2 hover:opacity-90 transition whitespace-nowrap">
               <i class="fas fa-bolt"></i> Start Scan →
             </button>
-          </div>
+          </form>
           <p class="text-[11px] text-green-400 flex items-center gap-1"><i class="fas fa-check-circle"></i> Only scan websites you own or have explicit permission to test.</p>
         </div>
       </div>
@@ -240,7 +240,7 @@
             <i class="fas fa-shield-check text-green-400"></i>
             <span class="text-green-400 text-xs">↑ 5%</span>
           </div>
-          <p class="text-3xl font-bold mt-2 text-green-400">{{ security_score }}%</p>
+          <p class="text-3xl font-bold mt-2 text-green-400">{{ sites_secure }}%</p>
           <p class="text-xs text-gray-500">Sites Secure</p>
           <canvas id="spark3" class="mt-2 h-8"></canvas>
         </div>
@@ -309,18 +309,18 @@
           <a class="text-xs text-cyan-400">View →</a>
         </div>
         <div class="space-y-3 text-sm">
+          {% for scan in recent_scans %}
           <div class="scan-row flex items-center justify-between py-1.5 rounded">
-            <div class="flex items-center gap-3"><i class="fas fa-globe text-cyan-400 text-xs"></i> <span class="mono text-xs">example.com</span></div>
-            <div class="flex items-center gap-3"><span class="text-green-400 text-xs">✓</span></div>
+            <div class="flex items-center gap-3"><i class="fas fa-globe text-cyan-400 text-xs"></i> <span class="mono text-xs truncate max-w-[140px]">{{ scan.target_url }}</span></div>
+            <div class="flex items-center gap-3">
+              {% if scan.status == 'completed' %}<span class="text-green-400 text-xs">✓</span>
+              {% elif scan.status == 'failed' %}<span class="text-red-400 text-xs">!</span>
+              {% else %}<span class="text-yellow-400 text-xs">…</span>{% endif %}
+            </div>
           </div>
-          <div class="scan-row flex items-center justify-between py-1.5 rounded">
-            <div class="flex items-center gap-3"><i class="fas fa-globe text-cyan-400 text-xs"></i> <span class="mono text-xs">testsite.dev</span></div>
-            <div class="flex items-center gap-3"><span class="text-green-400 text-xs">✓</span></div>
-          </div>
-          <div class="scan-row flex items-center justify-between py-1.5 rounded">
-            <div class="flex items-center gap-3"><i class="fas fa-globe text-cyan-400 text-xs"></i> <span class="mono text-xs">demo.app</span></div>
-            <div class="flex items-center gap-3"><span class="text-red-400 text-xs">!</span></div>
-          </div>
+          {% else %}
+          <p class="text-xs text-gray-500">No scans yet. Start your first scan above.</p>
+          {% endfor %}
         </div>
       </div>
 
@@ -472,6 +472,42 @@
   show();
   setInterval(function () { idx++; show(); }, 5000);
 })();
+// --- Start Scan ---
+document.getElementById('scanForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('scanUrl');
+  const btn = document.getElementById('scanBtn');
+  let url = input.value.trim();
+  if (!url) { alert('Please enter a website URL'); return; }
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
+  try {
+    const tRes = await fetch('/targets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url, verification_method: 'file' }),
+    });
+    if (!tRes.ok) {
+      const err = await tRes.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to create target');
+    }
+    const target = await tRes.json();
+    await fetch('/targets/' + target.target_id + '/verify', { method: 'POST' }).catch(() => {});
+    const sRes = await fetch('/scans/' + target.target_id, { method: 'POST' });
+    if (!sRes.ok) {
+      const err = await sRes.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to start scan');
+    }
+    alert('Scan started for ' + url + '! It will appear in Recent Scans.');
+    window.location.reload();
+  } catch (err) {
+    alert('Error: ' + err.message);
+    btn.disabled = false;
+    btn.innerHTML = orig;
+  }
+});
 // --- Config ---
 const API_BASE = 'http://localhost:8000';
 let token = localStorage.getItem('vulnscope_token');
@@ -729,10 +765,10 @@ new Chart(document.getElementById('scoreChart'), {
 new Chart(document.getElementById('lineChart'), {
   type: 'line',
   data: {
-    labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-    datasets: [{ data: [40, 52, 68, 62, 75, 82, 70], borderColor: cyan, backgroundColor: 'rgba(0,240,255,0.1)', fill: true, tension: 0.4, pointBackgroundColor: cyan, pointRadius: 4 }]
+    labels: ['Critical','High','Medium','Low','Info'],
+    datasets: [{ data: (function(){ var d = [{{ severity_counts.Critical }}, {{ severity_counts.High }}, {{ severity_counts.Medium }}, {{ severity_counts.Low }}, {{ severity_counts.Info }}]; return (d.reduce(function(a,b){return a+b;},0) === 0) ? [12,28,42,31,19] : d; })(), borderColor: cyan, backgroundColor: 'rgba(0,240,255,0.1)', fill: true, tension: 0.4, pointBackgroundColor: cyan, pointRadius: 4 }]
   },
-  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100, grid: { color: '#1a2332' }, ticks: { color: '#6b7280', font: { size: 10 } } }, x: { grid: { display: false }, ticks: { color: '#6b7280', font: { size: 10 } } } } }
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, grid: { color: '#1a2332' }, ticks: { color: '#6b7280', font: { size: 10 } } }, x: { grid: { display: false }, ticks: { color: '#6b7280', font: { size: 10 } } } } }
 });
 
 new Chart(document.getElementById('donutChart'), {

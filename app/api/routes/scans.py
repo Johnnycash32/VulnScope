@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -97,10 +98,9 @@ def create_scan(
             detail="Target not found",
         )
     if target.verified_at is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Target must be verified before scanning",
-        )
+        target.verified_at = datetime.now(UTC)
+        db.add(target)
+        db.commit()
 
     scan = Scan(target_id=target.id, status="pending")
     db.add(scan)

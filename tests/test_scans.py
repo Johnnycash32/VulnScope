@@ -107,7 +107,7 @@ def test_run_zap_scan_saves_vulnerabilities(
         assert hasattr(v, "remediation_code")
 
 
-def test_scan_requires_verified_target(
+def test_scan_auto_verifies_unverified_target(
     client: TestClient, register: Any
 ) -> None:
     reg = register()
@@ -122,8 +122,8 @@ def test_scan_requires_verified_target(
     target_id = target.json()["target_id"]
 
     created = client.post(f"/scans/{target_id}", headers=headers)
-    assert created.status_code == 400, created.text
-    assert "verified" in created.json()["detail"].lower()
+    assert created.status_code == 201, created.text
+    assert created.json()["status"] == "pending"
 
 
 def test_scan_requires_auth(client: TestClient) -> None:

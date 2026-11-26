@@ -110,6 +110,33 @@ def create_app() -> FastAPI:
         total_vulns = issues_found or 1
         security_score = max(0, round(100 - (critical_count * 10 + high_count * 5), 1))
 
+        severity_counts = {
+            "Critical": critical_count,
+            "High": high_count,
+            "Medium": medium_count,
+            "Low": low_count,
+            "Info": info_count,
+        }
+
+        scan_id_rows = db.scalars(
+            select(Scan.id)
+            .join(Target, Target.id == Scan.target_id)
+            .where(Target.user_id == user.id)
+        ).all()
+        secure_scans = 0
+        for sid in scan_id_rows:
+            crit_high = db.scalar(
+                select(func.count(Vulnerability.id)).where(
+                    Vulnerability.scan_id == sid,
+                    Vulnerability.cvss_severity.in_(["Critical", "High"]),
+                )
+            ) or 0
+            if crit_high == 0:
+                secure_scans += 1
+        sites_secure = (
+            round(secure_scans / len(scan_id_rows) * 100, 1) if scan_id_rows else 100
+        )
+
         recent_scans = db.execute(
             select(Scan)
             .options(selectinload(Scan.vulnerabilities))
@@ -137,6 +164,8 @@ def create_app() -> FastAPI:
                 "total_scans": total_scans,
                 "issues_found": issues_found,
                 "security_score": security_score,
+                "sites_secure": sites_secure,
+                "severity_counts": severity_counts,
                 "critical_count": critical_count,
                 "high_count": high_count,
                 "medium_count": medium_count,
@@ -163,6 +192,37 @@ def create_app() -> FastAPI:
         if user is None:
             return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
         return templates.TemplateResponse(request, "certwatch.html", {"user": user})
+
+    # ------------------------------------------------------------------
+    # Sidebar tab pages (Coming Soon — never 404)
+    # ------------------------------------------------------------------
+    @app.get("/scan", response_class=HTMLResponse)
+    async def scan_page(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(request, "coming-soon.html", {"title": "New Scan"})
+
+    @app.get("/history", response_class=HTMLResponse)
+    async def history_page(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(request, "coming-soon.html", {"title": "Scan History"})
+
+    @app.get("/reports", response_class=HTMLResponse)
+    async def reports_page(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(request, "coming-soon.html", {"title": "Reports"})
+
+    @app.get("/remediation", response_class=HTMLResponse)
+    async def remediation_page(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(request, "coming-soon.html", {"title": "Remediation"})
+
+    @app.get("/resources", response_class=HTMLResponse)
+    async def resources_page(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(request, "coming-soon.html", {"title": "Resources"})
+
+    @app.get("/developers", response_class=HTMLResponse)
+    async def developers_page(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(request, "coming-soon.html", {"title": "Developers"})
+
+    @app.get("/admin", response_class=HTMLResponse)
+    async def admin_page(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(request, "coming-soon.html", {"title": "Admin Panel"})
 
     # ------------------------------------------------------------------
     # System routes
