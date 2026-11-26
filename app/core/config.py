@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     zap_api_url: str = "http://zap:8080"
     zap_api_key: str | None = None
 
+    google_client_id: str = ""
+    google_client_secret: str = ""
+
     @property
     def is_production(self) -> bool:
         return self.environment.strip().lower() in {"prod", "production"}

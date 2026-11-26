@@ -33,6 +33,8 @@ dependencies = [
     "dnspython>=2.4",
     "apscheduler>=3.10",
     "croniter>=2.4",
+    "authlib>=1.3",
+    "itsdangerous>=2.1",
 ]
 
 [project.optional-dependencies]

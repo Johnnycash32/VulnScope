@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.api.deps import (
     get_current_user_from_cookie,
@@ -40,6 +41,11 @@ def create_app() -> FastAPI:
         )
 
     app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=settings.jwt_secret,
+    )
 
     app.include_router(auth.router)
     app.include_router(users.router)
