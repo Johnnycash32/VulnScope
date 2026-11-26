@@ -471,7 +471,7 @@
     <div class="card p-5 overflow-x-auto">
       <table class="w-full text-left text-sm">
         <thead><tr class="text-gray-400 text-xs uppercase border-b border-gray-800">
-          <th class="py-3 px-2">Target</th><th class="py-3 px-2">Status</th><th class="py-3 px-2">Date</th>
+          <th class="py-3 px-2">Target</th><th class="py-3 px-2">Status</th><th class="py-3 px-2">Date</th><th class="py-3 px-2 text-right">Actions</th>
         </tr></thead>
         <tbody>
         {% for scan in recent_scans %}
@@ -479,15 +479,17 @@
             <td class="py-3 px-2 mono text-cyan-400 truncate max-w-[240px]">{{ scan.target_url }}</td>
             <td class="py-3 px-2">{{ scan.status }}</td>
             <td class="py-3 px-2 text-gray-400">{{ scan.updated_at }}</td>
+            <td class="py-3 px-2 text-right"><button onclick="viewScan({{ scan.id }})" class="text-xs text-cyan-400 hover:underline cursor-pointer">Details →</button></td>
           </tr>
         {% else %}
-          <tr><td colspan="3" class="py-4 text-center text-gray-500">No scans yet. Start one above.</td></tr>
+          <tr><td colspan="4" class="py-4 text-center text-gray-500">No scans yet. Start one above.</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </section>
   <section id="reports" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Reports</h2><p class="text-gray-400">Downloadable PDF reports.</p></section>
+  <section id="scanDetail" class="p-8 hidden"></section>
   <section id="remediation" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Remediation</h2><p class="text-gray-400">Code fixes and recommendations.</p></section>
   <section id="resources" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Resources</h2><p class="text-gray-400">Educational security guides.</p></section>
   <section id="developers" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Developers</h2><p class="text-gray-400">Team profiles and contributions.</p></section>
@@ -555,6 +557,65 @@ async function handleScan(e, urlId, btn) {
 }
 document.getElementById('scanForm').addEventListener('submit', (e) => handleScan(e, 'scanUrl', document.getElementById('scanBtn')));
 document.getElementById('scanForm2').addEventListener('submit', (e) => handleScan(e, 'scanUrl2', document.getElementById('scanBtn2')));
+
+// --- Scan details view ---
+function riskClass(risk) {
+  if (risk === 'High') return 'bg-red-500/20 text-red-400 border border-red-500/50';
+  if (risk === 'Medium') return 'bg-orange-500/20 text-orange-400 border border-orange-500/50';
+  if (risk === 'Low') return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50';
+  return 'bg-gray-500/20 text-gray-400 border border-gray-500/50';
+}
+
+async function viewScan(id) {
+  document.querySelectorAll('main section').forEach(s => s.classList.add('hidden'));
+  const sec = document.getElementById('scanDetail');
+  sec.classList.remove('hidden');
+  sec.innerHTML = '<p class="text-gray-400">Loading scan details...</p>';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  try {
+    const res = await fetch('/scans/' + id + '/report?format=json');
+    if (!res.ok) throw new Error('Failed to load scan');
+    renderScanDetail(await res.json());
+  } catch (err) {
+    sec.innerHTML = '<p class="text-red-400">Error: ' + err.message + '</p>';
+  }
+}
+
+function renderScanDetail(scan) {
+  const sec = document.getElementById('scanDetail');
+  const vulns = scan.vulnerabilities || [];
+  let rows = vulns.map(v => `
+    <tr class="border-b border-gray-800 align-top">
+      <td class="py-2 px-2 font-medium text-xs">${escapeHtml(v.name)}</td>
+      <td class="py-2 px-2"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${riskClass(v.risk)}">${escapeHtml(v.risk)}</span></td>
+      <td class="py-2 px-2 text-xs mono">${v.cve_id ? escapeHtml(v.cve_id) : '—'}</td>
+      <td class="py-2 px-2 text-xs">${v.cvss_score != null ? v.cvss_score : '—'}</td>
+    </tr>`).join('');
+  if (!rows) rows = '<tr><td colspan="4" class="py-4 text-center text-gray-500">No vulnerabilities recorded for this scan.</td></tr>';
+  const date = scan.completed_at ? new Date(scan.completed_at).toLocaleString() : (scan.created_at ? new Date(scan.created_at).toLocaleString() : '—');
+  sec.innerHTML = `
+    <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+      <h2 class="text-2xl font-bold">Scan Details</h2>
+      <div class="flex gap-2">
+        <button onclick="show('history')" class="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg text-sm hover:bg-white/5">← Back</button>
+        <a href="/scans/${scan.scan_id}/report?format=pdf" class="bg-gradient-to-r from-green-500 to-cyan-500 text-black font-semibold px-4 py-2 rounded-lg text-sm hover:opacity-90">Download PDF</a>
+      </div>
+    </div>
+    <div class="card p-5 mb-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+      <div><p class="text-gray-500 text-xs">Target</p><p class="mono text-cyan-400 truncate">${escapeHtml(scan.target_url || '—')}</p></div>
+      <div><p class="text-gray-500 text-xs">Status</p><p class="font-semibold">${escapeHtml(scan.status)}</p></div>
+      <div><p class="text-gray-500 text-xs">Date</p><p>${date}</p></div>
+      <div><p class="text-gray-500 text-xs">Total Vulnerabilities</p><p class="font-bold text-red-400">${vulns.length}</p></div>
+    </div>
+    <div class="card p-5 overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead><tr class="text-gray-400 text-xs uppercase border-b border-gray-800">
+          <th class="py-3 px-2">Vulnerability</th><th class="py-3 px-2">Risk</th><th class="py-3 px-2">CVE</th><th class="py-3 px-2">CVSS</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
 // --- Config ---
 const API_BASE = 'http://localhost:8000';
 let token = localStorage.getItem('vulnscope_token');
