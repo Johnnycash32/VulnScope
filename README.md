@@ -76,6 +76,8 @@ environment (or `.env`) via `pydantic-settings`.
 | `REDIS_URL`                  | `redis://redis:6379/0`     | Celery broker + result backend.                               |
 | `ZAP_API_URL`                | `http://zap:8080`          | OWASP ZAP sidecar API endpoint.                               |
 | `ZAP_API_KEY`                | _(empty)_                  | ZAP API key, only if ZAP auth is enabled.                     |
+| `GOOGLE_CLIENT_ID`           | _(empty)_                  | Google OAuth 2.0 client ID for "Continue with Google".        |
+| `GOOGLE_CLIENT_SECRET`       | _(empty)_                  | Google OAuth 2.0 client secret.                               |
 
 > `CORS_ORIGINS` is a JSON array, e.g. `["http://localhost:3000"]`.
 
@@ -171,6 +173,8 @@ ruff check .
 | POST   | `/certwatch/`           | yes  | Add a domain to CertWatch monitoring                |
 | DELETE | `/certwatch/{id}`       | yes  | Remove a domain from monitoring                     |
 | POST   | `/certwatch/{id}/check` | yes  | Re-check a domain's certificate now                 |
+| GET    | `/auth/google`          | no   | Redirect to Google OAuth login                      |
+| GET    | `/auth/google/callback` | no   | Google OAuth callback (find-or-create user, set JWT) |
 
 ## Ownership verification
 
@@ -237,3 +241,5 @@ The following are **intentionally not implemented** and are planned for future p
 - **Scheduled/recurring scans** — Cron-based schedules with APScheduler, pause/resume, next-run tracking
 - **Scan comparison/diff** — Compare two scans for the same target: added/removed/changed vulnerabilities with risk/CVSS delta
 - **CertWatch (SSL/TLS monitoring)** — Monitor domains for certificate expiry, issuer, and days remaining; add/remove watches and re-check on demand. Gives VulnScope proactive certificate intelligence alongside vulnerability scanning.
+- **Google OAuth 2.0 login** — "Continue with Google" button on login/register; users can sign in with any Gmail account. Creates accounts automatically on first login.
+- **Web UI** — Server-rendered login, register, dashboard, and CertWatch pages with animated transparent logo, password visibility toggle, and a full-screen background image slideshow (7 landscape + 7 portrait images, orientation-aware, 8s crossfade).
