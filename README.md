@@ -7,6 +7,11 @@ scanning backed by Celery + Redis. CVE/CVSS enrichment, reporting, and
 dashboards are planned for future phases (see [What's NOT built
 yet](#whats-not-built-yet)).
 
+> **Superpower update:** VulnScope now ships with **CertWatch**, a built-in
+> SSL/TLS certificate monitoring API that watches domains for expiry and
+> issues alerts — giving the platform proactive certificate intelligence on top
+> of its vulnerability scanning.
+
 ## Tech stack
 
 - Python 3.11+
@@ -41,6 +46,7 @@ app/
   api/routes/users.py     /users/me
   api/routes/targets.py   /targets CRUD + verify
   api/routes/scans.py     /scans/{target_id} (start), /scans/{scan_id} (result)
+  api/routes/certwatch.py /certwatch/ CRUD + re-check (SSL/TLS monitoring)
   services/ownership.py   SSRF guard + ownership verification
   services/zap_client.py  OWASP ZAP REST API wrapper
   services/tasks.py       Celery task run_zap_scan
@@ -161,6 +167,10 @@ ruff check .
 | GET    | `/targets`              | yes  | List the current user's targets                     |
 | POST   | `/scans/{target_id}`    | yes  | Start a ZAP scan for a verified target              |
 | GET    | `/scans/{scan_id}`      | yes  | Get scan status and findings                        |
+| GET    | `/certwatch/`           | yes  | List monitored domains and certificate status       |
+| POST   | `/certwatch/`           | yes  | Add a domain to CertWatch monitoring                |
+| DELETE | `/certwatch/{id}`       | yes  | Remove a domain from monitoring                     |
+| POST   | `/certwatch/{id}/check` | yes  | Re-check a domain's certificate now                 |
 
 ## Ownership verification
 
@@ -226,3 +236,4 @@ The following are **intentionally not implemented** and are planned for future p
 - **Admin features** — User management, global scan/target listing, system statistics, role promotion
 - **Scheduled/recurring scans** — Cron-based schedules with APScheduler, pause/resume, next-run tracking
 - **Scan comparison/diff** — Compare two scans for the same target: added/removed/changed vulnerabilities with risk/CVSS delta
+- **CertWatch (SSL/TLS monitoring)** — Monitor domains for certificate expiry, issuer, and days remaining; add/remove watches and re-check on demand. Gives VulnScope proactive certificate intelligence alongside vulnerability scanning.
