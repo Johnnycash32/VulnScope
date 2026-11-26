@@ -137,6 +137,16 @@ def create_app() -> FastAPI:
             round(secure_scans / len(scan_id_rows) * 100, 1) if scan_id_rows else 100
         )
 
+        running_scans = db.scalar(
+            select(func.count(Scan.id))
+            .join(Target, Target.id == Scan.target_id)
+            .where(
+                Target.user_id == user.id,
+                Scan.status.in_(["pending", "running"]),
+            )
+        ) or 0
+        has_running_scans = running_scans > 0
+
         recent_scans = db.execute(
             select(Scan)
             .options(selectinload(Scan.vulnerabilities))
@@ -166,6 +176,7 @@ def create_app() -> FastAPI:
                 "security_score": security_score,
                 "sites_secure": sites_secure,
                 "severity_counts": severity_counts,
+                "has_running_scans": has_running_scans,
                 "critical_count": critical_count,
                 "high_count": high_count,
                 "medium_count": medium_count,

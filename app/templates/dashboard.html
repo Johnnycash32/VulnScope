@@ -463,6 +463,10 @@
 </main>
 
 <script>
+// --- Auto-refresh while scans are running (scans take 1-3 min) ---
+{% if has_running_scans %}
+setTimeout(function () { window.location.reload(); }, 20000);
+{% endif %}
 // --- Sidebar background slideshow ---
 (function () {
   var imgs = ['bg-land-1.jpg','bg-land-2.jpg','bg-land-3.jpg','bg-land-4.jpg','bg-land-5.jpg','bg-land-6.jpg','bg-land-7.jpg'];
