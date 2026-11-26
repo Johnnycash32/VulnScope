@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.api.deps import (
-    get_current_user_from_cookie,
+    get_current_user_from_cookie_optional,
     get_current_user_optional,
 )
 from app.api.routes import admin, auth, certwatch, reports, scans, scheduled_scans, targets, users
@@ -80,9 +80,12 @@ def create_app() -> FastAPI:
     @app.get("/dashboard", response_class=HTMLResponse)
     async def dashboard(
         request: Request,
-        user: User = Depends(get_current_user_from_cookie),
+        user: User | None = Depends(get_current_user_from_cookie_optional),
         db: Session = Depends(get_db),
     ):
+        if user is None:
+            return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
+
         total_scans = db.scalar(
             select(func.count(Scan.id))
             .join(Target, Target.id == Scan.target_id)
@@ -155,8 +158,10 @@ def create_app() -> FastAPI:
     @app.get("/certwatch", response_class=HTMLResponse)
     async def certwatch_page(
         request: Request,
-        user: User = Depends(get_current_user_from_cookie),
+        user: User | None = Depends(get_current_user_from_cookie_optional),
     ):
+        if user is None:
+            return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
         return templates.TemplateResponse(request, "certwatch.html", {"user": user})
 
     # ------------------------------------------------------------------

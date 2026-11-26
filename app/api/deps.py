@@ -82,6 +82,21 @@ def get_current_user_from_cookie(
     return user
 
 
+def get_current_user_from_cookie_optional(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> User | None:
+    token = request.cookies.get("access_token")
+    if not token:
+        return None
+    try:
+        payload = decode_access_token(token)
+        user_id = int(payload.get("sub"))
+    except (JWTError, ValueError, TypeError):
+        return None
+    return db.scalar(select(User).where(User.id == user_id))
+
+
 def get_current_admin(user: User = Depends(get_current_user)) -> User:
     if user.role != "admin":
         raise HTTPException(
