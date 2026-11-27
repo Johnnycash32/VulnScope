@@ -20,6 +20,7 @@ class CertWatchOut(BaseModel):
     expiry_date: datetime | None
     status: str
     days_remaining: int | None
+    ssl_grade: str | None = None
     last_checked: datetime | None
     created_at: datetime
 
@@ -34,4 +35,5 @@ class CertWatchResult(BaseModel):
     expiry_date: datetime | None
     status: Literal["valid", "expiring_soon", "expired", "unknown", "error"]
     days_remaining: int | None
+    ssl_grade: str | None = None
     error: str | None = None

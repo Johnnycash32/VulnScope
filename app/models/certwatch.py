@@ -39,6 +39,7 @@ class CertWatch(Base):
         nullable=False,
     )
     days_remaining: Mapped[int | None] = mapped_column(nullable=True)
+    ssl_grade: Mapped[str | None] = mapped_column(String(4), nullable=True)
     last_checked: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

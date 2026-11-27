@@ -39,4 +39,5 @@ class ScanOut(BaseModel):
     status: str
     created_at: datetime
     completed_at: datetime | None
+    error_message: str | None = None
     vulnerabilities: list[VulnerabilityOut] = []

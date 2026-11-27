@@ -70,6 +70,7 @@ def add_cert_watch(
         expiry_date=check.get("expiry_date"),
         status=check.get("status", "unknown"),
         days_remaining=check.get("days_remaining"),
+        ssl_grade=check.get("ssl_grade"),
         last_checked=datetime.now(UTC) if check.get("status") != "error" else None,
     )
     db.add(watch)
@@ -118,6 +119,7 @@ def recheck_cert_watch(
     watch.expiry_date = check.get("expiry_date")
     watch.status = check.get("status", "unknown")
     watch.days_remaining = check.get("days_remaining")
+    watch.ssl_grade = check.get("ssl_grade")
     watch.last_checked = now
     db.add(watch)
     db.commit()

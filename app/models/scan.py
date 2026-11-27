@@ -38,6 +38,7 @@ class Scan(Base):
     completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     target: Mapped[Target] = relationship(back_populates="scans")
     vulnerabilities: Mapped[list[Vulnerability]] = relationship(

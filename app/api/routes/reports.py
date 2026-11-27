@@ -138,6 +138,7 @@ def get_scan_report(
             "status": scan.status,
             "created_at": scan.created_at.isoformat() if scan.created_at else None,
             "completed_at": scan.completed_at.isoformat() if scan.completed_at else None,
+            "error_message": scan.error_message,
             "generated_at": datetime.now(UTC).isoformat(),
             "vulnerabilities": vulnerabilities_data,
         }

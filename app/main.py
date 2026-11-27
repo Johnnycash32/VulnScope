@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 from fastapi import Depends, FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -162,6 +164,7 @@ def create_app() -> FastAPI:
                 "id": s.id,
                 "target_url": s.target.url if s.target else "",
                 "status": s.status,
+                "error_message": s.error_message,
                 "updated_at": s.created_at.strftime("%Y-%m-%d %H:%M") if s.created_at else "",
             }
             for s in recent_scans
@@ -242,6 +245,44 @@ def create_app() -> FastAPI:
             or 0
         )
 
+        today = datetime.now(UTC).date()
+        scan_trend: list[int] = []
+        vuln_trend: list[int] = []
+        secure_trend: list[int] = []
+        for i in range(6, -1, -1):
+            day = today - timedelta(days=i)
+            day_start = datetime(day.year, day.month, day.day, tzinfo=UTC)
+            day_end = day_start + timedelta(days=1)
+            day_scans = db.scalars(
+                select(Scan)
+                .join(Target, Target.id == Scan.target_id)
+                .where(
+                    Target.user_id == user.id,
+                    Scan.created_at >= day_start,
+                    Scan.created_at < day_end,
+                )
+            ).all()
+            scan_trend.append(len(day_scans))
+            vcount = 0
+            scount = 0
+            for sc in day_scans:
+                vc = db.scalar(
+                    select(func.count(Vulnerability.id)).where(
+                        Vulnerability.scan_id == sc.id
+                    )
+                ) or 0
+                vcount += vc
+                ch = db.scalar(
+                    select(func.count(Vulnerability.id)).where(
+                        Vulnerability.scan_id == sc.id,
+                        Vulnerability.cvss_severity.in_(["Critical", "High"]),
+                    )
+                ) or 0
+                if ch == 0:
+                    scount += 1
+            vuln_trend.append(vcount)
+            secure_trend.append(scount)
+
         return templates.TemplateResponse(
             request,
             "dashboard.html",
@@ -271,6 +312,9 @@ def create_app() -> FastAPI:
                 "cert_total_domains": cert_total,
                 "cert_expiring": cert_expiring,
                 "cert_expired": cert_expired,
+                "scan_trend": scan_trend,
+                "vuln_trend": vuln_trend,
+                "secure_trend": secure_trend,
             },
         )
 

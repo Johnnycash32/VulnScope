@@ -6,10 +6,33 @@ from datetime import UTC, datetime
 from typing import Any
 
 
+def _compute_grade(status: str, days: int | None, proto: str, bits: int) -> str:
+    """Assign a basic SSL grade (A+, A, B, C, F) from cert health, protocol, key."""
+    if status in ("error", "expired"):
+        return "F"
+    if days is not None and days < 0:
+        return "F"
+    grade = "A"
+    if "TLSv1.3" in proto:
+        grade = "A+"
+    elif "TLSv1.2" in proto:
+        grade = "A"
+    elif "TLSv1.1" in proto or "TLSv1.0" in proto:
+        grade = "C"
+    elif "SSL" in proto:
+        return "F"
+    if bits and bits < 128 and grade in ("A", "A+"):
+        grade = "B"
+    if days is not None and days < 14 and grade in ("A+", "A"):
+        grade = "B"
+    return grade
+
+
 def check_certificate(domain: str) -> dict[str, Any]:
     """Fetch SSL/TLS certificate info for a domain using stdlib only.
 
-    Returns a dict with: domain, issuer, expiry_date, status, days_remaining, error.
+    Returns a dict with: domain, issuer, expiry_date, status, days_remaining,
+    ssl_grade, error.
     """
     result: dict[str, Any] = {
         "domain": domain,
@@ -17,6 +40,7 @@ def check_certificate(domain: str) -> dict[str, Any]:
         "expiry_date": None,
         "status": "unknown",
         "days_remaining": None,
+        "ssl_grade": "—",
         "error": None,
     }
 
@@ -29,6 +53,14 @@ def check_certificate(domain: str) -> dict[str, Any]:
         with socket.create_connection((host, port), timeout=10) as sock, \
              ctx.wrap_socket(sock, server_hostname=host) as ssock:
                 cert: dict[str, Any] = ssock.getpeercert()
+                proto = ssock.version() or ""
+                bits = 0
+                try:
+                    ciph = ssock.cipher()
+                    if ciph:
+                        bits = ciph[2] or 0
+                except Exception:  # noqa: BLE001
+                    bits = 0
 
         # Parse issuer (list of tuples -> dict)
         issuer_raw = cert.get("issuer", ())
@@ -57,6 +89,10 @@ def check_certificate(domain: str) -> dict[str, Any]:
                 result["status"] = "expiring_soon"
             else:
                 result["status"] = "valid"
+
+        result["ssl_grade"] = _compute_grade(
+            result["status"], result["days_remaining"], proto, bits
+        )
 
     except ssl.SSLCertVerificationError as exc:
         result["status"] = "error"

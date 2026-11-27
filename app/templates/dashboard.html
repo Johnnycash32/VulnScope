@@ -314,7 +314,7 @@
             <div class="flex items-center gap-3"><i class="fas fa-globe text-cyan-400 text-xs"></i> <span class="mono text-xs truncate max-w-[200px]" title="{{ scan.target_url }}">{{ scan.target_url }}</span></div>
             <div class="flex items-center gap-3">
               {% if scan.status == 'completed' %}<span class="text-green-400 text-xs">✓</span>
-              {% elif scan.status == 'failed' %}<span class="text-red-400 text-xs">!</span>
+              {% elif scan.status == 'failed' %}<span class="text-red-400 text-xs cursor-help" title="{{ scan.error_message or 'Scan failed' }}">!</span>
               {% else %}<span class="text-yellow-400 text-xs">…</span>{% endif %}
             </div>
           </div>
@@ -726,6 +726,7 @@ function renderScanDetail(scan) {
       <div><p class="text-gray-500 text-xs">Date</p><p>${date}</p></div>
       <div><p class="text-gray-500 text-xs">Total Vulnerabilities</p><p class="font-bold text-red-400">${vulns.length}</p></div>
     </div>
+    ${scan.error_message ? `<div class="card p-4 mb-4 border border-red-500/50 bg-red-500/10"><p class="text-sm text-red-300"><b>Error:</b> ${escapeHtml(scan.error_message)}</p></div>` : ''}
     <div class="card p-5 overflow-x-auto">
       <table class="w-full text-left text-sm">
         <thead><tr class="text-gray-400 text-xs uppercase border-b border-gray-800">
@@ -1036,9 +1037,9 @@ function spark(id, data, color) {
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
   });
 }
-spark('spark1', [20,25,22,30,28,35,32,40], cyan);
-spark('spark2', [15,18,22,20,28,25,30,35], red);
-spark('spark3', [60,62,65,68,70,71,72,73], green);
+spark('spark1', {{ scan_trend | tojson }}, cyan);
+spark('spark2', {{ vuln_trend | tojson }}, red);
+spark('spark3', {{ secure_trend | tojson }}, green);
 
 new Chart(document.getElementById('scoreChart'), {
   type: 'doughnut',

@@ -145,11 +145,21 @@ def run_zap_scan(self, scan_id: int, target_url: str) -> dict:
             "status": "completed",
             "vulnerabilities": len(found_alerts),
         }
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
         try:
             scan = db.get(Scan, scan_id)
             if scan is not None:
                 scan.status = "failed"
+                msg = str(exc) or exc.__class__.__name__
+                low = msg.lower()
+                if "resolve" in low or "connection" in low or "name or service" in low:
+                    scan.error_message = "Target unreachable by ZAP (DNS/network error)"
+                elif "ssl" in low or "handshake" in low or "certificate" in low:
+                    scan.error_message = "SSL/TLS handshake failed"
+                elif "timeout" in low or "timed out" in low:
+                    scan.error_message = "Scan timed out (target too slow or WAF blocking)"
+                else:
+                    scan.error_message = f"Scan failed: {msg[:300]}"
                 db.add(scan)
                 db.commit()
         except Exception:  # noqa: BLE001
