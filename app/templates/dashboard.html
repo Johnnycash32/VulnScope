@@ -524,6 +524,10 @@
     <div class="space-y-4">
     {% for rem in remediations %}
       <div class="card p-5">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="fas fa-globe text-cyan-400 text-xs"></i>
+          <span class="mono text-xs text-cyan-400 truncate max-w-[260px]">{{ rem.target_url }}</span>
+        </div>
         <div class="flex justify-between items-start mb-2 gap-2">
           <h3 class="font-semibold text-sm">{{ rem.name }}</h3>
           <span class="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap
@@ -541,7 +545,42 @@
     {% endfor %}
     </div>
   </section>
-  <section id="resources" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Resources</h2><p class="text-gray-400">Educational security guides.</p></section>
+  <section id="resources" class="p-8 hidden">
+    <h2 class="text-2xl font-bold mb-2">Resources</h2>
+    <p class="text-gray-400 text-sm mb-6">Security learning hub — guides, references, and tools to help you fix and prevent vulnerabilities.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="card p-5">
+        <h3 class="font-semibold flex items-center gap-2 mb-2"><i class="fas fa-book text-cyan-400"></i> OWASP Top 10</h3>
+        <p class="text-xs text-gray-400 mb-3">The 10 most critical web application security risks. Know what to test for.</p>
+        <a href="https://owasp.org/www-project-top-ten/" target="_blank" rel="noopener" class="text-xs text-cyan-400 hover:underline">owasp.org/www-project-top-ten →</a>
+      </div>
+      <div class="card p-5">
+        <h3 class="font-semibold flex items-center gap-2 mb-2"><i class="fas fa-shield-halved text-green-400"></i> OWASP Cheat Sheets</h3>
+        <p class="text-xs text-gray-400 mb-3">Practical prevention techniques for every vulnerability class.</p>
+        <a href="https://cheatsheetseries.owasp.org/" target="_blank" rel="noopener" class="text-xs text-cyan-400 hover:underline">cheatsheetseries.owasp.org →</a>
+      </div>
+      <div class="card p-5">
+        <h3 class="font-semibold flex items-center gap-2 mb-2"><i class="fas fa-bug text-red-400"></i> CVE / NVD Database</h3>
+        <p class="text-xs text-gray-400 mb-3">Look up any CVE ID for full details, CVSS scores, and references.</p>
+        <a href="https://nvd.nist.gov/" target="_blank" rel="noopener" class="text-xs text-cyan-400 hover:underline">nvd.nist.gov →</a>
+      </div>
+      <div class="card p-5">
+        <h3 class="font-semibold flex items-center gap-2 mb-2"><i class="fas fa-lock text-yellow-400"></i> PortSwigger Web Security Academy</h3>
+        <p class="text-xs text-gray-400 mb-3">Free, in-depth web security training and labs from the makers of Burp Suite.</p>
+        <a href="https://portswigger.net/web-security" target="_blank" rel="noopener" class="text-xs text-cyan-400 hover:underline">portswigger.net/web-security →</a>
+      </div>
+      <div class="card p-5">
+        <h3 class="font-semibold flex items-center gap-2 mb-2"><i class="fas fa-certificate text-blue-400"></i> SSL/TLS Best Practices</h3>
+        <p class="text-xs text-gray-400 mb-3">Keep certificates valid and your HTTPS configuration strong.</p>
+        <a href="https://www.ssllabs.com/projects/best-practices/" target="_blank" rel="noopener" class="text-xs text-cyan-400 hover:underline">ssllabs.com/projects/best-practices →</a>
+      </div>
+      <div class="card p-5">
+        <h3 class="font-semibold flex items-center gap-2 mb-2"><i class="fas fa-code text-green-400"></i> CWE Reference</h3>
+        <p class="text-xs text-gray-400 mb-3">Common Weakness Enumeration — understand the root cause behind each finding.</p>
+        <a href="https://cwe.mitre.org/" target="_blank" rel="noopener" class="text-xs text-cyan-400 hover:underline">cwe.mitre.org →</a>
+      </div>
+    </div>
+  </section>
   <section id="developers" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Developers</h2><p class="text-gray-400">Team profiles and contributions.</p></section>
   <section id="admin" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Admin Panel</h2><p class="text-gray-400">User and platform management.</p></section>
 </main>

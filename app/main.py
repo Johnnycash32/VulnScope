@@ -188,13 +188,13 @@ def create_app() -> FastAPI:
         ]
 
         remediation_rows = db.execute(
-            select(Vulnerability)
+            select(Vulnerability, Target.url)
             .join(Scan, Scan.id == Vulnerability.scan_id)
             .join(Target, Target.id == Scan.target_id)
             .where(Target.user_id == user.id)
-            .order_by(Vulnerability.cvss_score.desc().nulls_last())
+            .order_by(Target.url, Vulnerability.cvss_score.desc().nulls_last())
             .limit(50)
-        ).scalars().all()
+        ).all()
         remediations_list = [
             {
                 "name": v.name,
@@ -203,8 +203,9 @@ def create_app() -> FastAPI:
                 "cvss_score": v.cvss_score,
                 "solution": v.solution,
                 "remediation_code": v.remediation_code,
+                "target_url": url,
             }
-            for v in remediation_rows
+            for v, url in remediation_rows
         ]
 
         cert_total = (
