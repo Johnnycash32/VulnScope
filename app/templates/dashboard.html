@@ -311,7 +311,7 @@
         <div class="space-y-3 text-sm">
           {% for scan in recent_scans %}
           <div class="scan-row flex items-center justify-between py-1.5 rounded">
-            <div class="flex items-center gap-3"><i class="fas fa-globe text-cyan-400 text-xs"></i> <span class="mono text-xs truncate max-w-[140px]">{{ scan.target_url }}</span></div>
+            <div class="flex items-center gap-3"><i class="fas fa-globe text-cyan-400 text-xs"></i> <span class="mono text-xs truncate max-w-[200px]" title="{{ scan.target_url }}">{{ scan.target_url }}</span></div>
             <div class="flex items-center gap-3">
               {% if scan.status == 'completed' %}<span class="text-green-400 text-xs">✓</span>
               {% elif scan.status == 'failed' %}<span class="text-red-400 text-xs">!</span>
@@ -375,7 +375,7 @@
       <div class="col-span-12 card p-5 bg-gradient-to-br from-blue-950/30 to-transparent border-blue-900/50 hover:border-cyan-500/50 transition-colors duration-300">
         <div class="flex justify-between items-center mb-2">
           <h3 class="font-semibold flex items-center gap-2"><i class="fas fa-certificate text-blue-400"></i> CertWatch <span class="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Superpower</span></h3>
-          <a onclick="show('certwatch')" class="text-xs text-blue-400 cursor-pointer hover:underline">View All →</a>
+          <a href="/certwatch/page" class="text-xs text-blue-400 hover:underline">View All →</a>
         </div>
         <p class="text-xs text-gray-400 mb-4 leading-relaxed">Proactive SSL/TLS certificate monitoring. CertWatch warns you <span class="text-blue-300 font-medium">before</span> a certificate expires and causes an outage — something reactive CVSS/vulnerability scanning alone can't do. It watches issuer, expiry date, and days remaining for every domain you own.</p>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -457,11 +457,22 @@
   <section id="scan" class="p-8 hidden">
     <h2 class="text-2xl font-bold mb-4">New Scan</h2>
     <p class="text-gray-400 text-sm mb-6">Enter a website URL to start a vulnerability scan. Only scan websites you own or have explicit permission to test.</p>
-    <form id="scanForm2" class="flex gap-2 max-w-xl">
-      <div class="flex-1 bg-black/40 border border-gray-700 rounded-lg px-4 py-2.5 flex items-center gap-2">
+    <form id="scanForm2" class="max-w-xl space-y-4">
+      <div class="bg-black/40 border border-gray-700 rounded-lg px-4 py-2.5 flex items-center gap-2">
         <i class="fas fa-link text-gray-500 text-sm"></i>
         <input type="text" id="scanUrl2" class="bg-transparent flex-1 outline-none text-sm mono text-white" placeholder="Add website URL">
       </div>
+      <div>
+        <label class="block text-xs text-gray-400 mb-2 font-medium">Scan Type</label>
+        <div class="flex flex-wrap gap-4">
+          <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="scanType" value="fast" checked class="accent-cyan-500"> <span class="text-sm">Fast <span class="text-[10px] text-gray-500">(quick surface scan)</span></span></label>
+          <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="scanType" value="full" class="accent-cyan-500"> <span class="text-sm">Full <span class="text-[10px] text-gray-500">(deep scan)</span></span></label>
+        </div>
+      </div>
+      <label class="flex items-start gap-2 cursor-pointer">
+        <input type="checkbox" id="scanAuth" class="mt-1 accent-green-500">
+        <span class="text-xs text-gray-300">I confirm I have authorization to scan this domain.</span>
+      </label>
       <button type="submit" id="scanBtn2" class="bg-gradient-to-r from-green-500 to-cyan-500 text-black font-semibold px-5 py-2.5 rounded-lg flex items-center gap-2 hover:opacity-90 transition whitespace-nowrap">
         <i class="fas fa-bolt"></i> Start Scan →
       </button>
@@ -524,17 +535,20 @@
     <div class="space-y-4">
     {% for rem in remediations %}
       <div class="card p-5">
-        <div class="flex items-center gap-2 mb-2">
-          <i class="fas fa-globe text-cyan-400 text-xs"></i>
-          <span class="mono text-xs text-cyan-400 truncate max-w-[260px]">{{ rem.target_url }}</span>
-        </div>
         <div class="flex justify-between items-start mb-2 gap-2">
-          <h3 class="font-semibold text-sm">{{ rem.name }}</h3>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h3 class="font-semibold text-sm">{{ rem.name }}</h3>
+            {% if rem.count > 1 %}<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/50 whitespace-nowrap">{{ rem.count }} Instances Found</span>{% endif %}
+          </div>
           <span class="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap
             {% if rem.risk == 'High' %}bg-red-500/20 text-red-400 border border-red-500/50
             {% elif rem.risk == 'Medium' %}bg-orange-500/20 text-orange-400 border border-orange-500/50
             {% elif rem.risk == 'Low' %}bg-yellow-500/20 text-yellow-400 border border-yellow-500/50
             {% else %}bg-gray-500/20 text-gray-400 border border-gray-500/50{% endif %}">{{ rem.risk }}</span>
+        </div>
+        <div class="flex items-center gap-2 mb-2 flex-wrap">
+          <i class="fas fa-globe text-cyan-400 text-xs"></i>
+          {% for u in rem.target_urls %}<span class="mono text-[11px] text-cyan-400 bg-black/30 px-2 py-0.5 rounded truncate max-w-[200px]" title="{{ u }}">{{ u }}</span>{% endfor %}
         </div>
         {% if rem.solution %}<p class="text-xs text-gray-300 mb-2"><b>Fix:</b> {{ rem.solution }}</p>{% endif %}
         {% if rem.remediation_code %}<pre class="text-[11px] bg-black/40 p-3 rounded overflow-x-auto mono text-green-300">{{ rem.remediation_code }}</pre>{% endif %}
@@ -628,6 +642,8 @@ async function handleScan(e, urlId, btn) {
   const input = document.getElementById(urlId);
   let url = input.value.trim();
   if (!url) { alert('Please enter a website URL'); return; }
+  const auth = document.getElementById('scanAuth');
+  if (auth && !auth.checked) { alert('Please confirm you have authorization to scan this domain.'); return; }
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
   const orig = btn.innerHTML;
   btn.disabled = true;
@@ -635,6 +651,7 @@ async function handleScan(e, urlId, btn) {
   try {
     const tRes = await fetch('/targets', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: url, verification_method: 'file' }),
     });
@@ -643,8 +660,8 @@ async function handleScan(e, urlId, btn) {
       throw new Error(err.detail || 'Failed to create target');
     }
     const target = await tRes.json();
-    await fetch('/targets/' + target.target_id + '/verify', { method: 'POST' }).catch(() => {});
-    const sRes = await fetch('/scans/' + target.target_id, { method: 'POST' });
+    await fetch('/targets/' + target.target_id + '/verify', { method: 'POST', credentials: 'include' }).catch(() => {});
+    const sRes = await fetch('/scans/' + target.target_id, { method: 'POST', credentials: 'include' });
     if (!sRes.ok) {
       const err = await sRes.json().catch(() => ({}));
       throw new Error(err.detail || 'Failed to start scan');
@@ -675,7 +692,7 @@ async function viewScan(id) {
   sec.innerHTML = '<p class="text-gray-400">Loading scan details...</p>';
   window.scrollTo({ top: 0, behavior: 'smooth' });
   try {
-    const res = await fetch('/scans/' + id + '/report?format=json');
+    const res = await fetch('/scans/' + id + '/report?format=json', { credentials: 'include' });
     if (!res.ok) throw new Error('Failed to load scan');
     renderScanDetail(await res.json());
   } catch (err) {
@@ -757,6 +774,7 @@ function show(id) {
 async function api(path, opts = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
     ...opts,
+    credentials: 'include',
     headers: { ...authHeaders(), ...(opts.headers || {}) }
   });
   if (res.status === 401) {
@@ -950,9 +968,9 @@ async function deleteCert(id) {
 // --- Admin Panel ---
 async function loadAdmin() {
   try {
-    const sRes = await fetch('/admin/stats');
+    const sRes = await fetch('/admin/stats', { credentials: 'include' });
     if (sRes.ok) renderAdminStats(await sRes.json());
-    const uRes = await fetch('/admin/users');
+    const uRes = await fetch('/admin/users', { credentials: 'include' });
     if (uRes.ok) renderAdminUsers(await uRes.json());
     else if (uRes.status === 403) document.getElementById('adminUsers').innerHTML = '<tr><td colspan="5" class="py-4 text-center text-red-400">Admin access required.</td></tr>';
   } catch (e) { toast('Failed to load admin data', 'error'); }
@@ -987,7 +1005,7 @@ function renderAdminUsers(users) {
 
 async function setUserRole(id, role) {
   try {
-    const res = await fetch('/admin/users/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role }) });
+    const res = await fetch('/admin/users/' + id, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role }) });
     if (res.ok) { toast('Role updated to ' + role, 'success'); loadAdmin(); }
     else { const e = await res.json().catch(() => ({})); toast(e.detail || 'Failed to update role', 'error'); }
   } catch (e) { toast('Network error', 'error'); }
@@ -996,7 +1014,7 @@ async function setUserRole(id, role) {
 async function deleteUser(id) {
   if (!confirm('Permanently delete this user and all their data?')) return;
   try {
-    const res = await fetch('/admin/users/' + id, { method: 'DELETE' });
+    const res = await fetch('/admin/users/' + id, { method: 'DELETE', credentials: 'include' });
     if (res.ok) { toast('User deleted', 'success'); loadAdmin(); }
     else { const e = await res.json().catch(() => ({})); toast(e.detail || 'Failed to delete user', 'error'); }
   } catch (e) { toast('Network error', 'error'); }

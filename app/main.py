@@ -192,21 +192,30 @@ def create_app() -> FastAPI:
             .join(Scan, Scan.id == Vulnerability.scan_id)
             .join(Target, Target.id == Scan.target_id)
             .where(Target.user_id == user.id)
-            .order_by(Target.url, Vulnerability.cvss_score.desc().nulls_last())
-            .limit(50)
+            .order_by(Vulnerability.cvss_score.desc().nulls_last())
         ).all()
-        remediations_list = [
-            {
-                "name": v.name,
-                "risk": v.risk,
-                "cve_id": v.cve_id,
-                "cvss_score": v.cvss_score,
-                "solution": v.solution,
-                "remediation_code": v.remediation_code,
-                "target_url": url,
-            }
-            for v, url in remediation_rows
-        ]
+        grouped: dict[str, dict] = {}
+        for v, url in remediation_rows:
+            key = v.name
+            if key not in grouped:
+                grouped[key] = {
+                    "name": v.name,
+                    "risk": v.risk,
+                    "cve_id": v.cve_id,
+                    "cvss_score": v.cvss_score,
+                    "solution": v.solution,
+                    "remediation_code": v.remediation_code,
+                    "target_urls": [],
+                    "count": 0,
+                }
+            grouped[key]["count"] += 1
+            if url and url not in grouped[key]["target_urls"]:
+                grouped[key]["target_urls"].append(url)
+        remediations_list = sorted(
+            grouped.values(),
+            key=lambda r: (r["cvss_score"] or 0),
+            reverse=True,
+        )
 
         cert_total = (
             db.scalar(
@@ -265,7 +274,7 @@ def create_app() -> FastAPI:
             },
         )
 
-    @app.get("/certwatch", response_class=HTMLResponse)
+    @app.get("/certwatch/page", response_class=HTMLResponse)
     async def certwatch_page(
         request: Request,
         user: User | None = Depends(get_current_user_from_cookie_optional),
@@ -316,7 +325,7 @@ def create_app() -> FastAPI:
 
     @app.get("/developers", response_class=HTMLResponse)
     async def developers_page(request: Request) -> HTMLResponse:
-        return templates.TemplateResponse(request, "coming-soon.html", {"title": "Developers"})
+        return templates.TemplateResponse(request, "developers.html")
 
     @app.get("/admin", response_class=HTMLResponse)
     async def admin_page(request: Request) -> HTMLResponse:

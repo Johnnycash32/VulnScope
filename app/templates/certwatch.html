@@ -43,6 +43,20 @@
   @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
   .toast-success { background: #00ff88; color: #000; }
   .toast-error { background: #ff3b5c; }
+  .pro-badge {
+    background: linear-gradient(135deg, #ffd700, #ffae00);
+    color: #3a2a00; font-weight: 800; font-size: 11px; letter-spacing: 1px;
+    padding: 3px 10px; border-radius: 999px; box-shadow: 0 0 12px rgba(255,200,0,0.6);
+    text-transform: uppercase;
+  }
+  .locked-btn {
+    width: 100%; margin-top: 0.75rem; padding: 0.5rem; border-radius: 0.5rem;
+    border: 1px solid rgba(255,200,0,0.4); color: #ffd700; background: rgba(255,200,0,0.08);
+    font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+  }
+  .locked-btn:hover { background: rgba(255,200,0,0.18); }
+  .blur-lock { filter: blur(3px); pointer-events: none; user-select: none; }
 </style>
 </head>
 <body class="min-h-screen">
@@ -51,15 +65,38 @@
 
   <div class="max-w-6xl mx-auto p-6">
     <header class="mb-8">
-      <a href="/" class="text-cyan-400 hover:text-white text-sm flex items-center gap-2 mb-4">
-        <i class="fas fa-arrow-left"></i> Back to Dashboard
-      </a>
+      <div class="flex justify-between items-start">
+        <a href="/" class="text-cyan-400 hover:text-white text-sm flex items-center gap-2 mb-4">
+          <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <span class="pro-badge">PRO</span>
+      </div>
       <h1 class="text-2xl font-bold flex items-center gap-2"><i class="fas fa-certificate text-blue-400"></i> CertWatch <span class="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Superpower</span></h1>
       <p class="text-gray-400 text-sm mt-1">Personal SSL/TLS Certificate Monitor</p>
       <div class="mt-4 bg-gradient-to-r from-blue-950/40 to-transparent border border-blue-900/50 rounded-xl p-4">
         <p class="text-xs text-gray-300 leading-relaxed"><span class="text-blue-300 font-semibold">Why it's a superpower over CVSS:</span> Traditional CVSS/vulnerability scans are <b>reactive</b> — they tell you what's broken <i>after</i> a scan runs. CertWatch is <b>proactive</b>: it continuously watches the SSL/TLS certificates of your domains and warns you <b>before</b> they expire, preventing outages, browser warnings, and trust loss that a vulnerability scan would never catch. It tracks issuer, expiry date, and days remaining for every domain you own.</p>
       </div>
     </header>
+
+    <!-- Premium hooks (monetization UI) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="card p-5 relative overflow-hidden">
+        <div class="absolute top-2 right-2"><span class="pro-badge">PRO</span></div>
+        <h3 class="font-semibold text-sm flex items-center gap-2"><i class="fas fa-layer-group text-blue-400"></i> Monitor 10+ Domains</h3>
+        <p class="text-xs text-gray-400 mt-2">Unlock bulk domain monitoring for your entire portfolio.</p>
+        <button onclick="upgradeModal()" class="locked-btn"><i class="fas fa-lock"></i> Upgrade to Pro to Monitor 10+ Domains</button>
+      </div>
+      <div class="card p-5">
+        <h3 class="font-semibold text-sm flex items-center gap-2"><i class="fas fa-bell text-yellow-400"></i> SMS / Email Alerts</h3>
+        <p class="text-xs text-gray-400 mt-2">Get notified the moment a certificate is about to expire.</p>
+        <button onclick="upgradeModal()" class="locked-btn"><i class="fas fa-lock"></i> Upgrade for SMS/Email Alerts</button>
+      </div>
+      <div class="card p-5">
+        <h3 class="font-semibold text-sm flex items-center gap-2"><i class="fas fa-plug text-green-400"></i> Integrations</h3>
+        <p class="text-xs text-gray-400 mt-2">Send alerts to Slack or any custom webhook.</p>
+        <button onclick="openSettings()" class="locked-btn"><i class="fas fa-lock"></i> Configure Slack / Webhook</button>
+      </div>
+    </div>
 
     <div class="card">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 p-6 border-b border-gray-800">
@@ -96,12 +133,35 @@
             <th class="py-3 px-4">Issuer</th>
             <th class="py-3 px-4">Expiry Date</th>
             <th class="py-3 px-4">Days Left</th>
+            <th class="py-3 px-4">SSL Grade</th>
             <th class="py-3 px-4">Status</th>
             <th class="py-3 px-4 text-right">Actions</th>
           </tr>
         </thead>
         <tbody id="certTableBody" class="text-sm"></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- Settings modal (locked / blurred — Pro preview) -->
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+    <div class="card w-full max-w-md p-6 relative">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-semibold flex items-center gap-2"><i class="fas fa-plug text-green-400"></i> Integrations <span class="pro-badge">PRO</span></h3>
+        <button onclick="closeSettings()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="blur-lock space-y-3">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Slack Webhook URL</label>
+          <input type="text" placeholder="https://hooks.slack.com/services/..." class="w-full bg-black/40 border border-gray-700 rounded-lg px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Custom Webhook URL</label>
+          <input type="text" placeholder="https://your-server.com/alerts" class="w-full bg-black/40 border border-gray-700 rounded-lg px-3 py-2 text-sm">
+        </div>
+      </div>
+      <div class="mt-4 flex items-center gap-2 text-xs text-yellow-400"><i class="fas fa-lock"></i> Locked — upgrade to configure integrations.</div>
+      <button onclick="upgradeModal()" class="locked-btn mt-3"><i class="fas fa-crown"></i> Upgrade to Pro</button>
     </div>
   </div>
 
@@ -188,12 +248,29 @@ function certRow(w) {
   const days = w.days_remaining != null ? w.days_remaining : '—';
   const issuer = w.issuer || '—';
 
+  // SSL grade (heuristic based on certificate health / days remaining)
+  const grade = sslGrade(w);
+  const gradeColor = {
+    'A+': 'text-green-400', 'A': 'text-green-400', 'B': 'text-yellow-400',
+    'C': 'text-orange-400', 'F': 'text-red-400',
+  }[grade] || 'text-gray-400';
+
+  // Days-remaining visual bar
+  let barColor = 'bg-green-500', barPct = 100;
+  if (w.days_remaining != null) {
+    if (w.days_remaining < 10) { barColor = 'bg-red-500'; barPct = Math.max(4, Math.min(100, w.days_remaining * 5)); }
+    else if (w.days_remaining <= 30) { barColor = 'bg-yellow-400'; barPct = Math.max(10, Math.min(100, w.days_remaining * 3)); }
+    else { barColor = 'bg-green-500'; barPct = 100; }
+  } else { barColor = 'bg-gray-600'; barPct = 0; }
+  const bar = `<div class="w-16 h-1.5 bg-gray-700 rounded-full overflow-hidden mt-1"><div class="${barColor} h-full" style="width:${barPct}%"></div></div>`;
+
   return `
     <tr class="border-b border-gray-800 hover:bg-white/5 transition">
       <td class="py-4 px-4 mono text-cyan-400" title="${w.domain}">${w.domain}</td>
       <td class="py-4 px-4 text-gray-300">${issuer}</td>
       <td class="py-4 px-4 text-gray-300">${expiry}</td>
-      <td class="py-4 px-4 mono text-sm">${days}</td>
+      <td class="py-4 px-4 mono text-sm">${days}${bar}</td>
+      <td class="py-4 px-4 font-bold ${gradeColor}" title="Heuristic SSL grade based on certificate health">${grade}</td>
       <td class="py-4 px-4"><span class="badge ${statusClass}">${statusLabel}</span></td>
       <td class="py-4 px-4 text-right">
         <div class="flex items-center justify-end gap-2">
@@ -207,6 +284,16 @@ function certRow(w) {
       </td>
     </tr>
   `;
+}
+
+function sslGrade(w) {
+  if (w.status === 'expired' || w.status === 'error') return 'F';
+  if (w.days_remaining == null) return '—';
+  if (w.days_remaining < 0) return 'F';
+  if (w.days_remaining < 10) return 'C';
+  if (w.days_remaining < 30) return 'B';
+  if (w.days_remaining < 60) return 'A';
+  return 'A+';
 }
 
 function escapeHtml(text) {
@@ -301,6 +388,19 @@ async function deleteCert(id) {
 }
 
 loadCertWatches();
+
+// --- Premium / monetization UI ---
+function upgradeModal() {
+  toast('Upgrade to Pro to unlock this feature — coming soon!', 'info');
+}
+function openSettings() {
+  const m = document.getElementById('settingsModal');
+  if (m) m.classList.remove('hidden');
+}
+function closeSettings() {
+  const m = document.getElementById('settingsModal');
+  if (m) m.classList.add('hidden');
+}
 </script>
 </body>
 </html>
