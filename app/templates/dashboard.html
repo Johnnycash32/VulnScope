@@ -582,7 +582,20 @@
     </div>
   </section>
   <section id="developers" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Developers</h2><p class="text-gray-400">Team profiles and contributions.</p></section>
-  <section id="admin" class="p-8 hidden"><h2 class="text-2xl font-bold mb-4">Admin Panel</h2><p class="text-gray-400">User and platform management.</p></section>
+  <section id="admin" class="p-8 hidden">
+    <h2 class="text-2xl font-bold mb-2 flex items-center gap-2"><i class="fas fa-user-shield text-green-400"></i> Admin Panel</h2>
+    <p class="text-gray-400 text-sm mb-6">System-wide statistics and user management. Promote or demote admins and manage users. Only visible to administrators.</p>
+    <div id="adminStats" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"></div>
+    <div class="card p-5 overflow-x-auto">
+      <h3 class="font-semibold mb-4">Users</h3>
+      <table class="w-full text-left text-sm">
+        <thead><tr class="text-gray-400 text-xs uppercase border-b border-gray-800">
+          <th class="py-3 px-2">User</th><th class="py-3 px-2">Role</th><th class="py-3 px-2">Targets</th><th class="py-3 px-2">Scans</th><th class="py-3 px-2 text-right">Actions</th>
+        </tr></thead>
+        <tbody id="adminUsers"></tbody>
+      </table>
+    </div>
+  </section>
 </main>
 
 <script>
@@ -737,6 +750,7 @@ function show(id) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   if (id === 'certwatch') loadCertWatches();
+  if (id === 'admin') loadAdmin();
 }
 
 // --- CertWatch: API helpers ---
@@ -931,6 +945,61 @@ async function deleteCert(id) {
     btn.innerHTML = orig;
     btn.disabled = false;
   }
+}
+
+// --- Admin Panel ---
+async function loadAdmin() {
+  try {
+    const sRes = await fetch('/admin/stats');
+    if (sRes.ok) renderAdminStats(await sRes.json());
+    const uRes = await fetch('/admin/users');
+    if (uRes.ok) renderAdminUsers(await uRes.json());
+    else if (uRes.status === 403) document.getElementById('adminUsers').innerHTML = '<tr><td colspan="5" class="py-4 text-center text-red-400">Admin access required.</td></tr>';
+  } catch (e) { toast('Failed to load admin data', 'error'); }
+}
+
+function renderAdminStats(s) {
+  const cards = [
+    ['Users', s.total_users], ['Targets', s.total_targets],
+    ['Scans', s.total_scans], ['Vulnerabilities', s.vulnerabilities_total],
+    ['High Risk', s.high_risk_vulns], ['Scans (24h)', s.scans_last_24h],
+    ['Scheduled', s.total_scheduled_scans], ['Active Schedules', s.active_scheduled_scans],
+  ];
+  document.getElementById('adminStats').innerHTML = cards.map(c =>
+    `<div class="card p-4"><p class="text-2xl font-bold text-cyan-400">${c[1]}</p><p class="text-xs text-gray-500 mt-1">${c[0]}</p></div>`).join('');
+}
+
+function renderAdminUsers(users) {
+  const tb = document.getElementById('adminUsers');
+  if (!users.length) { tb.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-500">No users.</td></tr>'; return; }
+  tb.innerHTML = users.map(u => `
+    <tr class="border-b border-gray-800">
+      <td class="py-3 px-2"><p class="text-xs font-medium">${escapeHtml(u.email)}</p><p class="text-[10px] text-gray-500">${escapeHtml(u.full_name)}</p></td>
+      <td class="py-3 px-2"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${u.role === 'admin' ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-gray-500/20 text-gray-400 border border-gray-500/50'}">${escapeHtml(u.role)}</span></td>
+      <td class="py-3 px-2">${u.target_count}</td>
+      <td class="py-3 px-2">${u.scan_count}</td>
+      <td class="py-3 px-2 text-right whitespace-nowrap">
+        <button onclick="setUserRole(${u.id}, '${u.role === 'admin' ? 'user' : 'admin'}')" class="text-xs text-cyan-400 hover:underline mr-3">${u.role === 'admin' ? 'Demote' : 'Make Admin'}</button>
+        <button onclick="deleteUser(${u.id})" class="text-xs text-red-400 hover:underline">Delete</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function setUserRole(id, role) {
+  try {
+    const res = await fetch('/admin/users/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role }) });
+    if (res.ok) { toast('Role updated to ' + role, 'success'); loadAdmin(); }
+    else { const e = await res.json().catch(() => ({})); toast(e.detail || 'Failed to update role', 'error'); }
+  } catch (e) { toast('Network error', 'error'); }
+}
+
+async function deleteUser(id) {
+  if (!confirm('Permanently delete this user and all their data?')) return;
+  try {
+    const res = await fetch('/admin/users/' + id, { method: 'DELETE' });
+    if (res.ok) { toast('User deleted', 'success'); loadAdmin(); }
+    else { const e = await res.json().catch(() => ({})); toast(e.detail || 'Failed to delete user', 'error'); }
+  } catch (e) { toast('Network error', 'error'); }
 }
 
 // --- Charts (VulnScope only, decorative) ---
